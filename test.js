@@ -9,7 +9,7 @@ function gridLayout(points, pointRadius, gridWidth) {
 	return points
 }
 
-function draw(canvas){
+function draw(canvas,num = 0,color = 'red'){
 	//set up canvas
 	const ctx = canvas.node().getContext('2d')
 	ctx.save()
@@ -20,7 +20,10 @@ function draw(canvas){
 	//draw each point
 	for(let i = 0; i<points.length; i++){
 		const point = points[i]
-		ctx.fillStyle = 'red'
+		if (i<num) 
+			{ctx.fillStyle = 'grey'}
+		else 
+			{ctx.fillStyle = 'red'}
 		ctx.beginPath();
       	ctx.arc(point.x+5, point.y+5, pointRadius, 0, 2 * Math.PI, false);
       	ctx.fill()
@@ -41,6 +44,7 @@ const screenScale = window.devicePixelRatio || 1;
 const canvas = d3.select('#first').append('canvas')
   .attr('width', width * screenScale)
   .attr('height', height* screenScale)
+  .attr('class','vis')
   .style('width', `${width}px`)
   .style('height', `${height}px`)
   .attr('margin',20)
@@ -53,13 +57,22 @@ draw(canvas)
 const canvas2 = d3.select('#second').append('canvas')
   .attr('width', width * screenScale )
   .attr('height', height * screenScale)
+  .attr('class','vis')
   .style('width', `${width}px`)
   .style('height', `${height}px`)
   .attr('margin',20)
 
 canvas2.node().getContext('2d').scale(screenScale, screenScale);
 gridLayout(points, pointRadius+pointMargin,width)
-draw(canvas2)
+draw(canvas2, num = 2000)
+
+$(document).ready(function() {
+	$('#fullpage').fullpage({
+		slidesNavigation: true,
+	});
+	
+});
+
   // .on('click', function () {
   //   // start the animation
   //   animate(layouts[currLayout]);

@@ -1,14 +1,14 @@
 function gridLayout(points, pointRadius, gridWidth) {
-    const pointsPerRow = Math.floor(gridWidth / pointRadius);
-        point.x = pointRadius * (i % pointsPerRow);
-        point.y = pointRadius* Math.floor(i / pointsPerRow)
-    });
-    return points
+	const pointsPerRow = Math.floor(gridWidth / pointRadius)
+	const numRows = points.length / pointsPerRow
+
+	points.forEach((point, i) => {
+		point.x = pointRadius * (i % pointsPerRow)
+		point.y = pointRadius* Math.floor(i / pointsPerRow)
+	})
+	return points
 }
 
-function draw(canvas, num=0, color='red'){
-    //set up canvas
-    const ctx = canvas.node().getContext('2d');
 function draw(canvas,num = 0,color = 'red'){
 	//set up canvas
 	const ctx = canvas.node().getContext('2d')

@@ -1,25 +1,25 @@
 function gridLayout(points, pointRadius, gridWidth) {
-	const pointsPerRow = Math.floor(gridWidth / pointRadius)
-	const numRows = points.length / pointsPerRow
+	const pointsPerRow = Math.floor(gridWidth / pointRadius);
+	const numRows = points.length / pointsPerRow;
 
-	points.forEach((point, i) => {
-		point.x = pointRadius * (i % pointsPerRow)
-		point.y = pointRadius* Math.floor(i / pointsPerRow)
-	})
-	return points
+	points.forEach(function(point, i) {
+		point.x = pointRadius * (i % pointsPerRow);
+		point.y = pointRadius * Math.floor(i / pointsPerRow);
+	});
+	return points;
 }
 
-function draw(canvas,num = 0,color = 'red'){
-	//set up canvas
-	const ctx = canvas.node().getContext('2d')
-	ctx.save()
+function draw(canvas, num = 0, color = 'red') {
+	// set up canvas
+	const ctx = canvas.node().getContext('2d');
+	ctx.save();
 
 	//erase what is on the canvas currently
-	ctx.clearRect(0,0,width, height)
+	ctx.clearRect(0,0,width, height);
 
-	//draw each point
+	// draw each point
 	for(let i = 0; i<points.length; i++){
-		const point = points[i]
+		const point = points[i];
 		if (i<num) 
 			{ctx.fillStyle = 'grey'}
 		else 
@@ -39,7 +39,7 @@ const numPoints = 2500
 const points = d3.range(numPoints).map(index =>({id: index,color: 'red'}))
 const pointMargin = 10
 
-//create canvas
+// create canvas
 const screenScale = window.devicePixelRatio || 1;
 const canvas = d3.select('#first').append('canvas')
   .attr('width', width * screenScale)
@@ -50,8 +50,8 @@ const canvas = d3.select('#first').append('canvas')
   .attr('margin',20)
 
 canvas.node().getContext('2d').scale(screenScale, screenScale);
-gridLayout(points, pointRadius+pointMargin,width)
-draw(canvas)
+gridLayout(points, pointRadius+pointMargin,width);
+draw(canvas);
 
 // gridLayout(points, pointRadius+pointMargin,width)
 // draw(canvas,[243,454,62])

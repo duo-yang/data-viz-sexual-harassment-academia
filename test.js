@@ -101,6 +101,7 @@ function draw(canvas, num = [2472], color = ['red']){
     }
   }
   ctx.restore()
+
 }
 const width = 960;
 const height = 700;
@@ -116,12 +117,10 @@ var y = d3.scaleLinear()
           .range([height, 0]);
 
 // create set of points
-const numPoints = 2500
-const points = d3.range(numPoints).map(index =>({id: index,color: 'red'}))
-const pointMargin = 10
+const numPoints = 2500;
+const points = d3.range(numPoints).map(index =>({id: index,color: 'red'}));
+const pointMargin = 10;
 
-
-//create canvas
 const screenScale = window.devicePixelRatio || 1;
 const canvas = d3.select('#first').append('canvas')
   .attr('width', width * screenScale)
@@ -130,11 +129,12 @@ const canvas = d3.select('#first').append('canvas')
   .attr('id','fir')
   .style('width', `${width}px`)
   .style('height', `${height}px`)
-  .attr('margin',20)
+  .attr('margin',20);
 
 canvas.node().getContext('2d').scale(screenScale, screenScale);
 gridLayout(points, pointRadius + pointMargin,width)
 draw(canvas)
+
 
 gender_data = {'male': 2218,
 'female' : 132,
@@ -163,7 +163,7 @@ const canvas3 = d3.select('#third').append('canvas')
   .attr('class','vis')
   .style('width', `${width}px`)
   .style('height', `${height}px`)
-  .attr('margin',20)
+  .attr('margin',20);
 
 insti = [67, 234,916,1523,2472]
 canvas3.node().getContext('2d').scale(screenScale, screenScale);
@@ -185,6 +185,7 @@ console.log([636,863,963])
 canvas4.node().getContext('2d').scale(screenScale, screenScale);
 gridLayout(points, pointRadius+pointMargin,width)
 draw(canvas4,[636,1499,2472],['red','#bbb','#eee'])
+
 
 $(document).ready(function() {
   $('#fullpage').fullpage({

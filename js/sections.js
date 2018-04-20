@@ -22,6 +22,7 @@ var scrollVis = function () {
 
   // Sizing for the grid visualization
   var squareSize = 6;
+  var dotRadius = 3;
   var squarePad = 2;
   var numPerRow = width / (squareSize + squarePad);
 
@@ -200,15 +201,16 @@ var scrollVis = function () {
     // new and old data have same attrs applied
     var squares = g.selectAll('.square').data(wordData, function (d) { return d.word; });
     var squaresE = squares.enter()
-      .append('rect')
+      .append('circle')
       .classed('square', true);
     squares = squares.merge(squaresE)
-      .attr('width', squareSize)
-      .attr('height', squareSize)
+      // .attr('width', squareSize)
+      // .attr('height', squareSize)
+      .attr('r', dotRadius)
       .attr('fill', '#fff')
       .classed('fill-square', function (d) { return d.filler; })
-      .attr('x', function (d) { return d.x;})
-      .attr('y', function (d) { return d.y;})
+      .attr('cx', function (d) { return d.x + dotRadius;})
+      .attr('cy', function (d) { return d.y + dotRadius;})
       .attr('opacity', 0);
 
     // barchart
@@ -430,11 +432,11 @@ var scrollVis = function () {
     g.selectAll('.fill-square')
       .transition('move-fills')
       .duration(800)
-      .attr('x', function (d) {
-        return d.x;
+      .attr('cx', function (d) {
+        return d.x + dotRadius;
       })
-      .attr('y', function (d) {
-        return d.y;
+      .attr('cy', function (d) {
+        return d.y + dotRadius;
       });
 
     g.selectAll('.fill-square')
@@ -442,6 +444,29 @@ var scrollVis = function () {
       .duration(800)
       .attr('opacity', 1.0)
       .attr('fill', function (d) { return d.filler ? '#008080' : '#ddd'; });
+
+
+
+    var dots = g.selectAll('.square')
+        .sort(function (a, b) {
+            return d3.ascending(a.fillerNum, b.fillerNum);
+        });
+
+    dots.each(function (d, i) {
+        // positioning for square visual
+        // stored here to make it easier
+        // to keep track of.
+        d.col = i % numPerRow;
+        d.x = d.col * (squareSize + squarePad);
+        d.row = Math.floor(i / numPerRow);
+        d.y = d.row * (squareSize + squarePad);
+    })
+
+    dots.transition()
+        .duration(1000)
+        .delay(1200)
+        .attr('cx', function (d) { return d.x + dotRadius;})
+        .attr('cy', function (d) { return d.y + dotRadius;});
   }
 
   /**
@@ -464,8 +489,8 @@ var scrollVis = function () {
     g.selectAll('.fill-square')
       .transition()
       .duration(800)
-      .attr('x', 0)
-      .attr('y', function (d, i) {
+      .attr('cx', 0)
+      .attr('cy', function (d, i) {
         return yBarScale(i % 3) + yBarScale.bandwidth() / 2;
       })
       .transition()
@@ -660,7 +685,8 @@ var scrollVis = function () {
   function getWords(rawData) {
     return rawData.map(function (d, i) {
       // is this word a filler word?
-      d.filler = (d.filler === '1') ? true : false;
+      d.fillerNum = +d.filler;
+      d.filler = (d.filler === '1');
       // time in seconds word was spoken
       d.time = +d.time;
       // time in minutes word was spoken

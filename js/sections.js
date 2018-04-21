@@ -1,8 +1,11 @@
-// constants to define the size
+// Constants to define the size
 // and margins of the vis area.
-var width = 600;
-var height = 520;
-var margin = { top: 0, left: 20, bottom: 40, right: 10 };
+const width = 600;
+const height = 520;
+const margin = { top: 0, left: 20, bottom: 40, right: 10 };
+
+// Units of incidents
+const units = "Incidents";
 
 
 /**
@@ -334,12 +337,8 @@ var scrollVis = function () {
     activateFunctions[3] = highlightReported;
     activateFunctions[4] = highlightGender;
     activateFunctions[5] = highlightInst;
-    activateFunctions[6] = showBar;
-    activateFunctions[7] = showHistPart;
-    activateFunctions[8] = showHistAll;
-    activateFunctions[9] = showCough;
-    activateFunctions[10] = showHistAll;
-    activateFunctions[11] = showSankey;
+    activateFunctions[6] = showMentalImpacts;
+    activateFunctions[7] = showSankey;
 
     // updateFunctions are called while
     // in a particular section to update
@@ -347,7 +346,7 @@ var scrollVis = function () {
     // Most sections do not need to be updated
     // for all scrolling and so are set to
     // no-op functions.
-    for (var i = 0; i < 12; i++) {
+    for (var i = 0; i < 8; i++) {
       updateFunctions[i] = function () {};
     }
     updateFunctions[9] = updateCough;
@@ -377,6 +376,10 @@ var scrollVis = function () {
    *
    */
   function showTitle() {
+    hideAxis();
+    hideBars();
+    hideSankey();
+
     g.selectAll('.count-title')
       .transition()
       .duration(0)
@@ -397,6 +400,10 @@ var scrollVis = function () {
    *
    */
   function showFillerTitle() {
+    hideAxis();
+    hideBars();
+    hideSankey();
+
     g.selectAll('.vis-title')
       .transition()
       .duration(0)
@@ -422,6 +429,10 @@ var scrollVis = function () {
    *
    */
   function showGrid() {
+    hideAxis();
+    hideBars();
+    hideSankey();
+
     g.selectAll('.count-title')
       .transition()
       .duration(0)
@@ -448,6 +459,9 @@ var scrollVis = function () {
   function highlightReported() {
     var field = "reported";
     hideAxis();
+    hideBars();
+    hideSankey();
+
     g.selectAll('.bar')
       .transition()
       .duration(600)
@@ -497,6 +511,9 @@ var scrollVis = function () {
   function highlightGender() {
     var field = "gendersclean";
     hideAxis();
+    hideBars();
+    hideSankey();
+
     g.selectAll('.bar')
       .transition()
       .duration(600)
@@ -546,15 +563,8 @@ var scrollVis = function () {
   function highlightInst() {
     var field = "itypewide";
     hideAxis();
-    g.selectAll('.bar')
-      .transition()
-      .duration(600)
-      .attr('width', 0);
-
-    g.selectAll('.bar-text')
-      .transition()
-      .duration(0)
-      .attr('opacity', 0);
+    hideBars();
+    hideSankey();
 
     var dots = g.selectAll('.dot');
 
@@ -585,14 +595,14 @@ var scrollVis = function () {
   }
 
   /**
-   * showBar - barchart
+   * showMentalImpacts - barchart
    *
    * hides: dot grid
    * hides: histogram
    * shows: barchart
    *
    */
-  function showBar() {
+  function showMentalImpacts() {
     // ensure bar axis is set
     showAxis(xAxisBar);
 
@@ -632,102 +642,33 @@ var scrollVis = function () {
       .attr('opacity', 1);
   }
 
-  /**
-   * showHistPart - shows the first part
-   *  of the histogram of filler words
-   *
-   * hides: barchart
-   * hides: last half of histogram
-   * shows: first half of histogram
-   *
-   */
-  function showHistPart() {
-    // switch the axis to histogram one
-    showAxis(xAxisHist);
+  function showSankey() {
+    hideAxis();
+    hideBars();
 
-    g.selectAll('.bar-text')
-      .transition()
-      .duration(0)
+    d3.select('.sankey')
+      .transition('show-sankey')
+      .duration(600)
+      .attr('opacity', 1.0);
+  }
+
+  function hideSankey() {
+    d3.select('.sankey')
+      .transition('show-sankey')
+      .duration(600)
       .attr('opacity', 0);
+  }
 
+  function hideBars() {
     g.selectAll('.bar')
       .transition()
       .duration(600)
       .attr('width', 0);
 
-    // here we only show a bar if
-    // it is before the 15 minute mark
-    g.selectAll('.hist')
+    g.selectAll('.bar-text')
       .transition()
-      .duration(600)
-      .attr('y', function (d) { return (d.x0 < 15) ? yHistScale(d.length) : height; })
-      .attr('height', function (d) { return (d.x0 < 15) ? height - yHistScale(d.length) : 0; })
-      .style('opacity', function (d) { return (d.x0 < 15) ? 1.0 : 1e-6; });
-  }
-
-  /**
-   * showHistAll - show all histogram
-   *
-   * hides: cough title and color
-   * (previous step is also part of the
-   *  histogram, so we don't have to hide
-   *  that)
-   * shows: all histogram bars
-   *
-   */
-  function showHistAll() {
-    // ensure the axis to histogram one
-    showAxis(xAxisHist);
-
-    g.selectAll('.cough')
-      .transition()
-      .duration(0)
+      .duration(100)
       .attr('opacity', 0);
-
-    // named transition to ensure
-    // color change is not clobbered
-    g.selectAll('.hist')
-      .transition('color')
-      .duration(500)
-      .style('fill', '#008080');
-
-    g.selectAll('.hist')
-      .transition()
-      .duration(1200)
-      .attr('y', function (d) { return yHistScale(d.length); })
-      .attr('height', function (d) { return height - yHistScale(d.length); })
-      .style('opacity', 1.0);
-  }
-
-  /**
-   * showCough
-   *
-   * hides: nothing
-   * (previous and next sections are histograms
-   *  so we don't have to hide much here)
-   * shows: histogram
-   *
-   */
-  function showCough() {
-    // ensure the axis to histogram one
-    showAxis(xAxisHist);
-
-    g.selectAll('.hist')
-      .transition()
-      .duration(600)
-      .attr('y', function (d) { return yHistScale(d.length); })
-      .attr('height', function (d) { return height - yHistScale(d.length); })
-      .style('opacity', 1.0);
-  }
-
-  function showSankey() {
-    hideAxis();
-
-    svg.select('.sankey')
-      .transition('show-sankey')
-      .duration(600)
-      .attr('opacity', 1.0);
-
   }
 
   /**
@@ -738,6 +679,7 @@ var scrollVis = function () {
    *  (xAxisHist or xAxisBar)
    */
   function showAxis(axis) {
+    hideSankey();
     g.select('.x.axis')
       .call(axis)
       .transition().duration(500)
@@ -968,3 +910,129 @@ function display(data) {
 
 // load data and display
 d3.tsv('data/data_v_0420_c.tsv', display);
+
+d3.csv("data/sankey.csv", function(data) {
+
+  // format variables
+  var formatNumber = d3.format(",.0f"),    // zero decimal places
+      format = function(d) { return formatNumber(d) + " " + units; },
+      color = d3.scaleSequential(d3.interpolateGreys);
+      color.domain([0, 100]);
+
+  // append the svg object to the body of the page
+  var svg = d3.select("#vis").append("svg")
+    .attr('class', 'sankey').attr('opacity', 0);
+
+  svg.attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append("g")
+    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+  // Set the sankey diagram properties
+  var sankey = d3.sankey()
+      .nodeWidth(50)
+      .nodePadding(10)
+      .size([width, height]);
+
+  var path = sankey.link();
+
+  //set up graph in same style as original example but empty
+  var graph = {"nodes" : [], "links" : []};
+
+  data.forEach(function (d) {
+    graph.nodes.push({ "name": d["Prep_"] });
+    graph.nodes.push({ "name": d["Target_"] });
+    graph.links.push({ "target": d["Prep_"],
+                       "source": d["Target_"],
+                       "value": +d["Value"] });
+   });
+
+  // return only the distinct / unique nodes
+  graph.nodes = d3.keys(d3.nest()
+    .key(function (d) { return d.name; })
+    .object(graph.nodes));
+
+  // loop through each link replacing the text with its index from node
+  graph.links.forEach(function (d, i) {
+    graph.links[i].source = graph.nodes.indexOf(graph.links[i].source);
+    graph.links[i].target = graph.nodes.indexOf(graph.links[i].target);
+  });
+
+  // now loop through each nodes to make nodes an array of objects
+  // rather than an array of strings
+  graph.nodes.forEach(function (d, i) {
+    graph.nodes[i] = { "name": d };
+  });
+
+  sankey
+      .nodes(graph.nodes)
+      .links(graph.links)
+      .layout(0);
+
+  // add in the links
+  var link = svg.append("g").selectAll(".link")
+      .data(graph.links)
+    .enter().append("path")
+      .attr("class", "link")
+      .attr("d", path)
+      .style("stroke-width", function(d) { return Math.max(1, d.dy); })
+      .sort(function(a, b) { return b.dy - a.dy; });
+
+  // add the link titles
+  link.append("title")
+        .text(function(d) {
+            return "Perpetrator: " + d.source.name.substring(2) +
+                "\nTarget: " + d.target.name.substring(2) + "\n" +
+                format(d.value); });
+
+  // add in the nodes
+  var node = svg.append("g").selectAll(".node")
+      .data(graph.nodes)
+    .enter().append("g")
+      .attr("class", "node")
+      .attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")"; })
+      .call(d3.drag()
+        .subject(function(d) {
+          return d;
+        })
+        .on("start", function() {
+          this.parentNode.appendChild(this);
+        })
+        .on("drag", dragmove));
+
+  // add the rectangles for the nodes
+  node.append("rect")
+      .attr("height", function(d) { return d.dy; })
+      .attr("width", sankey.nodeWidth())
+      .style("fill", function(d) { return color(d.dy); })
+      .style("stroke", "none")
+    .append("title")
+      .text(function(d) {
+          return d.name.substring(2) + "\n" + format(d.value); });
+
+  // add in the title for the nodes
+  node.append("text")
+    .attr("x", -6)
+    .attr("y", function(d) { return d.dy / 2; })
+    .attr("dy", ".35em")
+    .attr("text-anchor", "end")
+    .attr("transform", null)
+    .text(function(d) { return d.name.substring(2); })
+    .filter(function(d) { return d.x < width / 2; })
+    .attr("x", 6 + sankey.nodeWidth())
+    .attr("text-anchor", "start");
+
+  // the function for moving the nodes
+  function dragmove(d) {
+    d3.select(this)
+      .attr("transform",
+            "translate("
+               + d.x + ","
+               + (d.y = Math.max(
+                  0, Math.min(height - d.dy, d3.event.y))
+                 ) + ")");
+    sankey.relayout();
+    link.attr("d", path);
+  }
+});

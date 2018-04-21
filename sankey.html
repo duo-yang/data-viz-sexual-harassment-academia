@@ -65,7 +65,7 @@ var path = sankey.link();
 var graph = {"nodes" : [], "links" : []};
 
 // load the data
-d3.csv("data/sankey.csv", function(error, data) {
+d3.csv("data/sankey.csv", function(data) {
 
   data.forEach(function (d) {
     graph.nodes.push({ "name": d["Prep_"] });

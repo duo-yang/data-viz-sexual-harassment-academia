@@ -357,35 +357,6 @@ var scrollVis = function () {
       .attr('fill', barColors[0])
       .attr('opacity', 0);
 
-    // cough title
-    g.append('text')
-      .attr('class', 'sub-title cough cough-title')
-      .attr('x', width / 2)
-      .attr('y', 60)
-      .text('cough')
-      .attr('opacity', 0);
-
-    // arrowhead from
-    // http://logogin.blogspot.com/2013/02/d3js-arrowhead-markers.html
-    svg.append('defs').append('marker')
-      .attr('id', 'arrowhead')
-      .attr('refY', 2)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 4)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M 0,0 V 4 L6,2 Z');
-
-    g.append('path')
-      .attr('class', 'cough cough-arrow')
-      .attr('marker-end', 'url(#arrowhead)')
-      .attr('d', function () {
-        var line = 'M ' + ((width / 2) - 10) + ' ' + 80;
-        line += ' l 0 ' + 230;
-        return line;
-      })
-      .attr('opacity', 0);
-
     // sankey format variables
     var formatNumber = d3.format(",.0f"),    // zero decimal places
       format = function(d) { return formatNumber(d) + " " + units; },

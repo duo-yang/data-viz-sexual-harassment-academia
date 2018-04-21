@@ -153,11 +153,15 @@ var scrollVis = function () {
       fieldsToSort.set("gendersclean", new fieldToSort("gendersclean", IncidentsData));
       fieldsToSort.set("reported", new fieldToSort("reported", IncidentsData));
       fieldsToSort.set("itypewide", new fieldToSort("itypewide", IncidentsData));
+
       var fillerCounts = [{key:'anxiety',value:296},{key:'depression',value: 263},{key:'stressful',value: 189},{key:'angry',value:153},{key:'fear',value:133},{key:'therapy',value:129},{key:'doubted',value:117},{key:'ptsd',value:85},{key:'lost',value:73},{key:'lonely',value:66},{key:'bad',value:59},{key:'shame',value:57},{key:'panic',value:52},{key:'upset',value:39},{key:'wary',value:34},{key:'worried',value:33},{key:'uncomfortable',value:32},{key:'struggle',value:32},{key:'suicide',value:30}]//,{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'}]
 
       // set the bar scale's domain
+      // var genderCountMax = d3.max(fieldsToSort.get("gendersclean").counts,function (d) { return d.value; });
+
+      // xBarScale.domain([0, genderCountMax]);
       color.domain([0, d3.max(fillerCounts, function(d) { return d.value; })]);
-      console.log(color)
+      // console.log(color)
 
       var countMax = d3.max(fillerCounts, function (d) { return d.value;});
       xBarScale.domain([0, countMax]);
@@ -169,7 +173,9 @@ var scrollVis = function () {
       var histMax = d3.max(histData, function (d) { return d.length; });
       yHistScale.domain([0, histMax]);
 
-      setupVis(IncidentsData, fieldsToSort.get("gendersclean").counts, histData);
+      // setupVis(IncidentsData, fieldsToSort.get("gendersclean").counts, histData);
+      setupVis(IncidentsData, fillerCounts, histData);
+      
 
       setupSections();
     });
@@ -590,12 +596,12 @@ var scrollVis = function () {
     // ensure bar axis is set
     showAxis(xAxisBar);
 
-    g.selectAll('.square')
+    g.selectAll('.dot')
       .transition()
       .duration(800)
       .attr('opacity', 0);
 
-    g.selectAll('.fill-square')
+    g.selectAll('.fill-dot')
       .transition()
       .duration(800)
       .attr('cx', 0)

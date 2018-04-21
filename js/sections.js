@@ -45,11 +45,13 @@ var scrollVis = function () {
   // @v4 using new scale type
   var yBarScale = d3.scaleBand()
     .paddingInner(0.08)
-    .domain([0, 1, 2])
+    .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,15,16,17,18])
+    // .domain(['worried','worse','ptsd','fear','angry','doubted','stressful','suicidal','therapy','anxiety','lost','affected','depression','lonely'])
     .range([0, height - 50], 0.1, 0.1);
 
   // Color is determined just by the index of the bars
-  var barColors = { 0: '#008080', 1: '#399785', 2: '#5AAF8C' };
+ var barColors = { 0: '#008080', 1: '#399785', 2: '#5AAF8C',3:'#000' };
+  var color = d3.scaleSequential(d3.interpolateGreens)
 
   // The histogram display shows the
   // first 30 minutes of data
@@ -151,10 +153,14 @@ var scrollVis = function () {
       fieldsToSort.set("gendersclean", new fieldToSort("gendersclean", IncidentsData));
       fieldsToSort.set("reported", new fieldToSort("reported", IncidentsData));
       fieldsToSort.set("itypewide", new fieldToSort("itypewide", IncidentsData));
+      var fillerCounts = [{key:'anxiety',value:296},{key:'depression',value: 263},{key:'stressful',value: 189},{key:'angry',value:153},{key:'fear',value:133},{key:'therapy',value:129},{key:'doubted',value:117},{key:'ptsd',value:85},{key:'lost',value:73},{key:'lonely',value:66},{key:'bad',value:59},{key:'shame',value:57},{key:'panic',value:52},{key:'upset',value:39},{key:'wary',value:34},{key:'worried',value:33},{key:'uncomfortable',value:32},{key:'struggle',value:32},{key:'suicide',value:30}]//,{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'}]
+
       // set the bar scale's domain
-      var genderCountMax = d3.max(fieldsToSort.get("gendersclean").counts,
-        function (d) { return d.value; });
-      xBarScale.domain([0, genderCountMax]);
+      color.domain([0, d3.max(fillerCounts, function(d) { return d.value; })]);
+      console.log(color)
+
+      var countMax = d3.max(fillerCounts, function (d) { return d.value;});
+      xBarScale.domain([0, countMax]);
 
       // get aggregated histogram data
 
@@ -247,7 +253,7 @@ var scrollVis = function () {
     bars = bars.merge(barsE)
       .attr('x', 0)
       .attr('y', function (d, i) { return yBarScale(i);})
-      .attr('fill', function (d, i) { return barColors[i]; })
+      .attr('fill', '#d7443f')//function (d, i) { return barColors[i]; }) #######color######
       .attr('width', 0)
       .attr('height', yBarScale.bandwidth());
 
@@ -255,12 +261,12 @@ var scrollVis = function () {
     barText.enter()
       .append('text')
       .attr('class', 'bar-text')
-      .text(function (d) { return d.key + '…'; })
+      .text(function (d) { return d.key ; })
       .attr('x', 0)
       .attr('dx', 15)
       .attr('y', function (d, i) { return yBarScale(i);})
       .attr('dy', yBarScale.bandwidth() / 1.2)
-      .style('font-size', '110px')
+      .style('font-size', '15px')
       .attr('fill', 'white')
       .attr('opacity', 0);
 
@@ -584,12 +590,12 @@ var scrollVis = function () {
     // ensure bar axis is set
     showAxis(xAxisBar);
 
-    g.selectAll('.dot')
+    g.selectAll('.square')
       .transition()
       .duration(800)
       .attr('opacity', 0);
 
-    g.selectAll('.fill-dot')
+    g.selectAll('.fill-square')
       .transition()
       .duration(800)
       .attr('cx', 0)

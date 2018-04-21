@@ -116,9 +116,25 @@ var x = d3.scaleBand()
 var y = d3.scaleLinear()
           .range([height, 0]);
 
+cate_list = ['overview','perpetrator gender','institution','reported or not']
+select = d3.select('body')
+        .append('select')
+        .attr('id','select')
+    options = select 
+        .selectAll('options')
+        .data(cate_list).enter()
+        .append('option')
+            .text(function(d){return d;})
+function changeColor(data,key){
+
+}    
+console.log(options)
 // create set of points
 const numPoints = 2500;
-const points = d3.range(numPoints).map(index =>({id: index,color: 'red'}));
+const points = d3.range(numPoints).map(index =>({
+  id: index,
+  color: 'red'
+}));
 const pointMargin = 10;
 
 const screenScale = window.devicePixelRatio || 1;

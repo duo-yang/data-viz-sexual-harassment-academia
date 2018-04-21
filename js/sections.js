@@ -21,10 +21,10 @@ var scrollVis = function () {
   var activeIndex = 0;
 
   // Sizing for the grid visualization
-  var squareSize = 6;
   var dotRadius = 3;
-  var squarePad = 2;
-  var numPerRow = width / (squareSize + squarePad);
+  var dotSize = dotRadius * 2;
+  var dotPad = 2;
+  var numPerRow = width / (dotSize + dotPad);
 
   // main svg used for visualization
   var svg = null;
@@ -95,6 +95,26 @@ var scrollVis = function () {
   // progress through the section.
   var updateFunctions = [];
 
+  // var genderCounts = [];
+  // var genderList = [];
+  // var genderMax = "";
+
+  class fieldToSort {
+    constructor(field, IncidentsData) {
+      this.counts = groupBy(field, IncidentsData);
+      this.orderedKeys = d3.values(this.counts).map(function(d) { return d.key; });
+      var unkIndex = this.orderedKeys.indexOf("Unknown");
+      if (unkIndex > -1) {
+        this.orderedKeys.splice(unkIndex, 1);
+        this.orderedKeys.push("Unknown");
+      }
+      this.maxKey = this.orderedKeys[0];
+      this.sorted = false;
+    }
+  }
+
+  var fieldsToSort = d3.map();
+
   /**
    * chart
    *
@@ -105,7 +125,7 @@ var scrollVis = function () {
   var chart = function (selection) {
     selection.each(function (rawData) {
       // create svg and give it a width and height
-      svg = d3.select(this).selectAll('svg').data([wordData]);
+      svg = d3.select(this).selectAll('svg').data([IncidentsData]);
       var svgE = svg.enter().append('svg');
       // @v4 use merge to combine enter and existing selection
       svg = svg.merge(svgE);
@@ -122,16 +142,19 @@ var scrollVis = function () {
         .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
       // perform some preprocessing on raw data
-      var wordData = getWords(rawData);
+      var IncidentsData = getIncidents(rawData);
       // filter to just include filler words
-      var fillerWords = getFillerWords(wordData);
+      var fillerWords = getFillerWords(IncidentsData);
 
       // get the counts of filler words for the
-      // bar chart display
-      var fillerCounts = groupByWord(fillerWords);
+      // prepare fields to sort
+      fieldsToSort.set("gendersclean", new fieldToSort("gendersclean", IncidentsData));
+      fieldsToSort.set("reported", new fieldToSort("reported", IncidentsData));
+      fieldsToSort.set("itypewide", new fieldToSort("itypewide", IncidentsData));
       // set the bar scale's domain
-      var countMax = d3.max(fillerCounts, function (d) { return d.value;});
-      xBarScale.domain([0, countMax]);
+      var genderCountMax = d3.max(fieldsToSort.get("gendersclean").counts,
+        function (d) { return d.value; });
+      xBarScale.domain([0, genderCountMax]);
 
       // get aggregated histogram data
 
@@ -140,7 +163,7 @@ var scrollVis = function () {
       var histMax = d3.max(histData, function (d) { return d.length; });
       yHistScale.domain([0, histMax]);
 
-      setupVis(wordData, fillerCounts, histData);
+      setupVis(IncidentsData, fieldsToSort.get("gendersclean").counts, histData);
 
       setupSections();
     });
@@ -151,12 +174,12 @@ var scrollVis = function () {
    * setupVis - creates initial elements for all
    * sections of the visualization.
    *
-   * @param wordData - data object for each word.
+   * @param IncidentData - data object for each word.
    * @param fillerCounts - nested data that includes
    *  element for each filler word type.
    * @param histData - binned histogram data
    */
-  var setupVis = function (wordData, fillerCounts, histData) {
+  var setupVis = function (IncidentData, fillerCounts, histData) {
     // axis
     g.append('g')
       .attr('class', 'x axis')
@@ -164,51 +187,52 @@ var scrollVis = function () {
       .call(xAxisBar);
     g.select('.x.axis').style('opacity', 0);
 
-    // count openvis title
+    // count vis title
     g.append('text')
-      .attr('class', 'title openvis-title')
-      .attr('x', width / 2)
+      .attr('class', 'title vis-title')
+      .attr('x', 0)
       .attr('y', height / 3)
-      .text('2013');
+      .text('Sexual Harassment');
 
     g.append('text')
-      .attr('class', 'sub-title openvis-title')
-      .attr('x', width / 2)
+      .attr('class', 'sub-title vis-title highlight')
+      .attr('x', 0)
       .attr('y', (height / 3) + (height / 5))
-      .text('OpenVis Conf');
+      .text('in Academia');
 
-    g.selectAll('.openvis-title')
+    g.selectAll('.vis-title')
       .attr('opacity', 0);
 
     // count filler word count title
     g.append('text')
       .attr('class', 'title count-title highlight')
-      .attr('x', width / 2)
+      .attr('x', 0)
       .attr('y', height / 3)
-      .text('180');
+      .text('2468');
 
     g.append('text')
       .attr('class', 'sub-title count-title')
-      .attr('x', width / 2)
+      .attr('x', 0)
       .attr('y', (height / 3) + (height / 5))
-      .text('Filler Words');
+      .text('Reported incidents');
 
     g.selectAll('.count-title')
       .attr('opacity', 0);
 
-    // square grid
+    // dot grid
     // @v4 Using .merge here to ensure
     // new and old data have same attrs applied
-    var squares = g.selectAll('.square').data(wordData, function (d) { return d.word; });
-    var squaresE = squares.enter()
+    var dots = g.selectAll('.dot').data(IncidentData, function (d) { return d.word; });
+    var dotsE = dots.enter()
       .append('circle')
-      .classed('square', true);
-    squares = squares.merge(squaresE)
-      // .attr('width', squareSize)
-      // .attr('height', squareSize)
+      .classed('dot', true);
+    dots = dots.merge(dotsE)
+      // .attr('width', dotSize)
+      // .attr('height', dotSize)
       .attr('r', dotRadius)
       .attr('fill', '#fff')
-      .classed('fill-square', function (d) { return d.filler; })
+      .attr('class', function(d) { return d3.select(this).attr("class")
+        + " gender_" + d["gendersclean"].toLowerCase(); })
       .attr('cx', function (d) { return d.x + dotRadius;})
       .attr('cy', function (d) { return d.y + dotRadius;})
       .attr('opacity', 0);
@@ -296,12 +320,14 @@ var scrollVis = function () {
     activateFunctions[0] = showTitle;
     activateFunctions[1] = showFillerTitle;
     activateFunctions[2] = showGrid;
-    activateFunctions[3] = highlightGrid;
-    activateFunctions[4] = showBar;
-    activateFunctions[5] = showHistPart;
-    activateFunctions[6] = showHistAll;
-    activateFunctions[7] = showCough;
+    activateFunctions[3] = highlightReported;
+    activateFunctions[4] = highlightGender;
+    activateFunctions[5] = highlightInst;
+    activateFunctions[6] = showBar;
+    activateFunctions[7] = showHistPart;
     activateFunctions[8] = showHistAll;
+    activateFunctions[9] = showCough;
+    activateFunctions[10] = showHistAll;
 
     // updateFunctions are called while
     // in a particular section to update
@@ -309,10 +335,10 @@ var scrollVis = function () {
     // Most sections do not need to be updated
     // for all scrolling and so are set to
     // no-op functions.
-    for (var i = 0; i < 9; i++) {
+    for (var i = 0; i < 11; i++) {
       updateFunctions[i] = function () {};
     }
-    updateFunctions[7] = updateCough;
+    updateFunctions[9] = updateCough;
   };
 
   /**
@@ -344,7 +370,7 @@ var scrollVis = function () {
       .duration(0)
       .attr('opacity', 0);
 
-    g.selectAll('.openvis-title')
+    g.selectAll('.vis-title')
       .transition()
       .duration(600)
       .attr('opacity', 1.0);
@@ -354,17 +380,17 @@ var scrollVis = function () {
    * showFillerTitle - filler counts
    *
    * hides: intro title
-   * hides: square grid
+   * hides: dot grid
    * shows: filler count title
    *
    */
   function showFillerTitle() {
-    g.selectAll('.openvis-title')
+    g.selectAll('.vis-title')
       .transition()
       .duration(0)
       .attr('opacity', 0);
 
-    g.selectAll('.square')
+    g.selectAll('.dot')
       .transition()
       .duration(0)
       .attr('opacity', 0);
@@ -376,11 +402,11 @@ var scrollVis = function () {
   }
 
   /**
-   * showGrid - square grid
+   * showGrid - dot grid
    *
    * hides: filler count title
    * hides: filler highlight in grid
-   * shows: square grid
+   * shows: dot grid
    *
    */
   function showGrid() {
@@ -389,25 +415,26 @@ var scrollVis = function () {
       .duration(0)
       .attr('opacity', 0);
 
-    g.selectAll('.square')
+    g.selectAll('.dot')
       .transition()
       .duration(600)
       .delay(function (d) {
         return 5 * d.row;
       })
       .attr('opacity', 1.0)
-      .attr('fill', '#ddd');
+      .attr('fill', '#d7443f');
   }
 
   /**
-   * highlightGrid - show fillers in grid
+   * highlightReported - show fillers in grid
    *
    * hides: barchart, text and axis
-   * shows: square grid and highlighted
-   *  filler words. also ensures squares
+   * shows: dot grid and highlighted
+   *  filler words. also ensures dots
    *  are moved back to their place in the grid
    */
-  function highlightGrid() {
+  function highlightReported() {
+    var field = "reported";
     hideAxis();
     g.selectAll('.bar')
       .transition()
@@ -419,60 +446,136 @@ var scrollVis = function () {
       .duration(0)
       .attr('opacity', 0);
 
+    var dots = g.selectAll('.dot');
 
-    g.selectAll('.square')
-      .transition()
-      .duration(0)
-      .attr('opacity', 1.0)
-      .attr('fill', '#ddd');
+    dots.transition()
+      .duration(800)
+      .attr('opacity', function (d) { return d[field] === "Unknown" ? 0.3 :
+        1.0; })
+      .attr('fill', function (d) { return d[field] ===
+        fieldsToSort.get(field).maxKey ? '#d7443f' : '#ddd'; });
+
+    // Sort by gender
+    sortBy(dots, field);
 
     // use named transition to ensure
     // move happens even if other
     // transitions are interrupted.
-    g.selectAll('.fill-square')
-      .transition('move-fills')
-      .duration(800)
-      .attr('cx', function (d) {
-        return d.x + dotRadius;
-      })
-      .attr('cy', function (d) {
-        return d.y + dotRadius;
-      });
-
-    g.selectAll('.fill-square')
-      .transition()
-      .duration(800)
-      .attr('opacity', 1.0)
-      .attr('fill', function (d) { return d.filler ? '#008080' : '#ddd'; });
-
-
-
-    var dots = g.selectAll('.square')
-        .sort(function (a, b) {
-            return d3.ascending(a.fillerNum, b.fillerNum);
-        });
-
-    dots.each(function (d, i) {
-        // positioning for square visual
-        // stored here to make it easier
-        // to keep track of.
-        d.col = i % numPerRow;
-        d.x = d.col * (squareSize + squarePad);
-        d.row = Math.floor(i / numPerRow);
-        d.y = d.row * (squareSize + squarePad);
-    })
-
-    dots.transition()
+    if (!fieldsToSort.get(field).sorted) {
+      dots.transition('sort-fills')
         .duration(1000)
         .delay(1200)
         .attr('cx', function (d) { return d.x + dotRadius;})
         .attr('cy', function (d) { return d.y + dotRadius;});
+
+      fieldsToSort.each(function (d, i) {
+        d.sorted = i === field;
+      });
+    }
+  }
+
+  /**
+   * highlightGender - show fillers in grid
+   *
+   * hides: barchart, text and axis
+   * shows: dot grid and highlighted
+   *  filler words. also ensures dots
+   *  are moved back to their place in the grid
+   */
+  function highlightGender() {
+    var field = "gendersclean";
+    hideAxis();
+    g.selectAll('.bar')
+      .transition()
+      .duration(600)
+      .attr('width', 0);
+
+    g.selectAll('.bar-text')
+      .transition()
+      .duration(0)
+      .attr('opacity', 0);
+
+    var dots = g.selectAll('.dot');
+
+    dots.transition()
+      .duration(800)
+      .attr('opacity', function (d) { return d[field] === "Unknown" ? 0.3 :
+        1.0; })
+      .attr('fill', function (d) { return d[field] ===
+        fieldsToSort.get(field).maxKey ? '#d7443f' : '#ddd'; });
+
+    // Sort by gender
+    sortBy(dots, field);
+
+    // use named transition to ensure
+    // move happens even if other
+    // transitions are interrupted.
+    if (!fieldsToSort.get(field).sorted) {
+      dots.transition('sort-fills')
+        .duration(1000)
+        .delay(1200)
+        .attr('cx', function (d) { return d.x + dotRadius;})
+        .attr('cy', function (d) { return d.y + dotRadius;});
+
+      fieldsToSort.each(function (d, i) {
+        d.sorted = i === field;
+      });
+    }
+  }
+
+  /**
+   * highlightInst - show fillers in grid
+   *
+   * hides: barchart, text and axis
+   * shows: dot grid and highlighted
+   *  filler words. also ensures dots
+   *  are moved back to their place in the grid
+   */
+  function highlightInst() {
+    var field = "itypewide";
+    hideAxis();
+    g.selectAll('.bar')
+      .transition()
+      .duration(600)
+      .attr('width', 0);
+
+    g.selectAll('.bar-text')
+      .transition()
+      .duration(0)
+      .attr('opacity', 0);
+
+    var dots = g.selectAll('.dot');
+
+    dots.transition()
+      .duration(800)
+      .attr('opacity', function (d) { return d[field] === "Unknown" ? 0.3 :
+        1.0; })
+      .attr('fill', function (d) { return d[field] ===
+        fieldsToSort.get(field).maxKey ? '#d7443f' : '#ddd'; });
+
+    // Sort by gender
+    sortBy(dots, field);
+
+    // use named transition to ensure
+    // move happens even if other
+    // transitions are interrupted.
+    if (!fieldsToSort.get(field).sorted) {
+      dots.transition('sort-fills')
+        .duration(1000)
+        .delay(1200)
+        .attr('cx', function (d) { return d.x + dotRadius;})
+        .attr('cy', function (d) { return d.y + dotRadius;});
+
+      fieldsToSort.each(function (d, i) {
+        d.sorted = i === field;
+      });
+    }
   }
 
   /**
    * showBar - barchart
    *
-   * hides: square grid
+   * hides: dot grid
    * hides: histogram
    * shows: barchart
    *
@@ -481,12 +584,12 @@ var scrollVis = function () {
     // ensure bar axis is set
     showAxis(xAxisBar);
 
-    g.selectAll('.square')
+    g.selectAll('.dot')
       .transition()
       .duration(800)
       .attr('opacity', 0);
 
-    g.selectAll('.fill-square')
+    g.selectAll('.fill-dot')
       .transition()
       .duration(800)
       .attr('cx', 0)
@@ -672,7 +775,7 @@ var scrollVis = function () {
    */
 
   /**
-   * getWords - maps raw data to
+   * getIncidents - maps raw data to
    * array of data objects. There is
    * one data object for each word in the speach
    * data.
@@ -682,23 +785,23 @@ var scrollVis = function () {
    *
    * @param rawData - data read in from file
    */
-  function getWords(rawData) {
+  function getIncidents(rawData) {
     return rawData.map(function (d, i) {
-      // is this word a filler word?
-      d.fillerNum = +d.filler;
-      d.filler = (d.filler === '1');
+      // perpetrator gender
+      d.fillerNum = 3;
+      d.filler = true;
       // time in seconds word was spoken
-      d.time = +d.time;
+      d.time = 61;
       // time in minutes word was spoken
       d.min = Math.floor(d.time / 60);
 
-      // positioning for square visual
+      // positioning for dot visual
       // stored here to make it easier
       // to keep track of.
       d.col = i % numPerRow;
-      d.x = d.col * (squareSize + squarePad);
+      d.x = d.col * (dotSize + dotPad);
       d.row = Math.floor(i / numPerRow);
-      d.y = d.row * (squareSize + squarePad);
+      d.y = d.row * (dotSize + dotPad);
       return d;
     });
   }
@@ -707,7 +810,7 @@ var scrollVis = function () {
    * getFillerWords - returns array of
    * only filler words
    *
-   * @param data - word data from getWords
+   * @param data - word data from getIncidents
    */
   function getFillerWords(data) {
     return data.filter(function (d) {return d.filler; });
@@ -736,18 +839,41 @@ var scrollVis = function () {
   }
 
   /**
-   * groupByWord - group words together
+   * groupBy - group words together
    * using nest. Used to get counts for
    * barcharts.
    *
-   * @param words
+   * @param keyword
+   * @param incidents
    */
-  function groupByWord(words) {
+  function groupBy(keyword, incidents) {
     return d3.nest()
-      .key(function (d) { return d.word; })
+      .key(function (d) { return d[keyword]; })
       .rollup(function (v) { return v.length; })
-      .entries(words)
+      .entries(incidents)
       .sort(function (a, b) {return b.value - a.value;});
+  }
+
+  /**
+   * sortBy - sort Incidents by key field.
+   *
+   * @param incidents
+   * @param field
+   */
+  function sortBy(incidents, field) {
+    return fieldsToSort.has(field)?
+      incidents.sort(function (a, b) { return d3.ascending(
+        fieldsToSort.get(field).orderedKeys.indexOf(a[field]),
+        fieldsToSort.get(field).orderedKeys.indexOf(b[field]));
+      })
+      .each(function (d, i) {
+        // recalculate dot positions
+        d.col = i % numPerRow;
+        d.x = d.col * (dotSize + dotPad);
+        d.row = Math.floor(i / numPerRow);
+        d.y = d.row * (dotSize + dotPad);
+      }) :
+      incidents;
   }
 
   /**
@@ -819,4 +945,4 @@ function display(data) {
 }
 
 // load data and display
-d3.tsv('data/words.tsv', display);
+d3.tsv('data/data_v_0420_c.tsv', display);

@@ -1,3 +1,6 @@
+body {
+  font-family: 'Lato', sans-serif;
+}
 
 .container {
   width: 890px;
@@ -19,14 +22,14 @@
 
 .step {
   margin-bottom: 200px;
-  font-family: "TiemposTextWeb-Regular","Georgia";
+  font-family: 'Lato', sans-serif;
   font-size: 16px;
   line-height: 23px;
   color: #767678;
 }
 
 #sections .title {
-  font-family: Arial,Helvetica,"san-serif";
+  font-family: 'Lato', sans-serif;
   font-size: 16px;
   font-weight: bold;
   margin-bottom: 2px;
@@ -50,13 +53,13 @@
 }
 
 #vis .title {
-  font-size:120px;
-  text-anchor: middle;
+  font-size: 60px;
+  text-anchor: start;
 }
 
 #vis .sub-title {
-  font-size:80px;
-  text-anchor: middle;
+  font-size: 60px;
+  text-anchor: start;
 }
 
 .axis path,
@@ -67,7 +70,7 @@
 }
 
 .highlight {
-  fill: #008080;
+  fill: #d7443f;
   font-weight: bold;
 }
 

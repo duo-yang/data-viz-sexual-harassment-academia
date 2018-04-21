@@ -347,7 +347,7 @@
         }
 
         /**
-        * Adds or remove the possibility of scrolling through sections by using the keyboard arrow keys
+        * Adds or remove the possibility of scrolling through sections by using the keyboard arrow orderedKeys
         */
         function setKeyboardScrolling(value, directions){
             if(typeof directions !== 'undefined'){
@@ -577,7 +577,7 @@
                 .resize(resizeHandler);
 
             $document
-                //Sliding with arrow keys, both, vertical and horizontal
+                //Sliding with arrow orderedKeys, both, vertical and horizontal
                 .keydown(keydownHandler)
 
                 //to prevent scrolling while zooming
@@ -1772,7 +1772,7 @@
             }
         }
 
-        //Sliding with arrow keys, both, vertical and horizontal
+        //Sliding with arrow orderedKeys, both, vertical and horizontal
         function keydownHandler(e) {
             clearTimeout(keydownId);
 
@@ -1788,7 +1788,7 @@
                 activeElement.attr('contentEditable') !== "true" && activeElement.attr('contentEditable') !== '' &&
                 options.keyboardScrolling && options.autoScrolling){
 
-                //preventing the scroll with arrow keys & spacebar & Page Up & Down keys
+                //preventing the scroll with arrow orderedKeys & spacebar & Page Up & Down orderedKeys
                 var keyControls = [40, 38, 32, 33, 34];
                 if($.inArray(keyCode, keyControls) > -1){
                     e.preventDefault();
@@ -1930,7 +1930,7 @@
                     break;
 
                 default:
-                    return; // exit this handler for other keys
+                    return; // exit this handler for other orderedKeys
             }
         }
 

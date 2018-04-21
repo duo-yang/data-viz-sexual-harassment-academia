@@ -9,11 +9,6 @@
   shape-rendering: crispEdges;
 }
 
-rect {
-    stroke: none !important;
-    fill: gray !important;
-}
-
 .node text {
     pointer-events: none;
     font-family: 'Lato';
@@ -33,7 +28,8 @@ rect {
 <body>
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
-<script src="sankey.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="js/sankey.js"></script>
 <script>
 
 var units = "Incidents";
@@ -46,7 +42,8 @@ var margin = {top: 10, right: 10, bottom: 10, left: 10},
 // format variables
 var formatNumber = d3.format(",.0f"),    // zero decimal places
     format = function(d) { return formatNumber(d) + " " + units; },
-    color = d3.scaleOrdinal(d3.schemeCategory20);
+    color = d3.scaleSequential(d3.interpolateGreys);
+    color.domain([0, 150]);
 
 // append the svg object to the body of the page
 var svg = d3.select("body").append("svg")
@@ -64,11 +61,11 @@ var sankey = d3.sankey()
 
 var path = sankey.link();
 
-// load the data
-d3.csv("sankey.csv", function(error, data) {
+//set up graph in same style as original example but empty
+var graph = {"nodes" : [], "links" : []};
 
-  //set up graph in same style as original example but empty
-  graph = {"nodes" : [], "links" : []};
+// load the data
+d3.csv("data/sankey.csv", function(error, data) {
 
   data.forEach(function (d) {
     graph.nodes.push({ "name": d["Prep_"] });
@@ -136,10 +133,8 @@ d3.csv("sankey.csv", function(error, data) {
   node.append("rect")
       .attr("height", function(d) { return d.dy; })
       .attr("width", sankey.nodeWidth())
-      .style("fill", function(d) {
-          return d.color = color(d.name.replace(/ .*/, "")); })
-      .style("stroke", function(d) {
-          return d3.rgb(d.color).darker(2); })
+      .style("fill", function(d) { return color(d.dy); })
+      .style("stroke", "none")
     .append("title")
       .text(function(d) {
           return d.name.substring(2) + "\n" + format(d.value); });

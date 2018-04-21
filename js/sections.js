@@ -1,3 +1,9 @@
+// constants to define the size
+// and margins of the vis area.
+var width = 600;
+var height = 520;
+var margin = { top: 0, left: 20, bottom: 40, right: 10 };
+
 
 /**
  * scrollVis - encapsulates
@@ -6,12 +12,6 @@
  * http://bost.ocks.org/mike/chart/
  */
 var scrollVis = function () {
-  // constants to define the size
-  // and margins of the vis area.
-  var width = 600;
-  var height = 520;
-  var margin = { top: 0, left: 20, bottom: 40, right: 10 };
-
   // Keep track of which visualization
   // we are on and which was the last
   // index activated. When user scrolls
@@ -95,10 +95,7 @@ var scrollVis = function () {
   // progress through the section.
   var updateFunctions = [];
 
-  // var genderCounts = [];
-  // var genderList = [];
-  // var genderMax = "";
-
+  // Field to sort for dot matrices
   class fieldToSort {
     constructor(field, IncidentsData) {
       this.counts = groupBy(field, IncidentsData);
@@ -113,6 +110,7 @@ var scrollVis = function () {
     }
   }
 
+  // All fields to sort for dot matrices
   var fieldsToSort = d3.map();
 
   /**
@@ -125,8 +123,8 @@ var scrollVis = function () {
   var chart = function (selection) {
     selection.each(function (rawData) {
       // create svg and give it a width and height
-      svg = d3.select(this).selectAll('svg').data([IncidentsData]);
-      var svgE = svg.enter().append('svg');
+      svg = d3.select(this).selectAll('.dot-bar').data([IncidentsData]);
+      var svgE = svg.enter().append('svg').attr('class', 'dot-bar');
       // @v4 use merge to combine enter and existing selection
       svg = svg.merge(svgE);
 
@@ -305,6 +303,7 @@ var scrollVis = function () {
         return line;
       })
       .attr('opacity', 0);
+
   };
 
   /**
@@ -328,6 +327,7 @@ var scrollVis = function () {
     activateFunctions[8] = showHistAll;
     activateFunctions[9] = showCough;
     activateFunctions[10] = showHistAll;
+    activateFunctions[11] = showSankey;
 
     // updateFunctions are called while
     // in a particular section to update
@@ -335,7 +335,7 @@ var scrollVis = function () {
     // Most sections do not need to be updated
     // for all scrolling and so are set to
     // no-op functions.
-    for (var i = 0; i < 11; i++) {
+    for (var i = 0; i < 12; i++) {
       updateFunctions[i] = function () {};
     }
     updateFunctions[9] = updateCough;
@@ -706,6 +706,16 @@ var scrollVis = function () {
       .attr('y', function (d) { return yHistScale(d.length); })
       .attr('height', function (d) { return height - yHistScale(d.length); })
       .style('opacity', 1.0);
+  }
+
+  function showSankey() {
+    hideAxis();
+
+    svg.select('.sankey')
+      .transition('show-sankey')
+      .duration(600)
+      .attr('opacity', 1.0);
+
   }
 
   /**

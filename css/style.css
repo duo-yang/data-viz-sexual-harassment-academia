@@ -66,14 +66,6 @@ body {
   position: absolute;
 }
 
-#vis .dot-bar {
-  z-index: 10 !important;
-}
-
-#vis .sankey {
-  z-index: 20 !important;
-}
-
 .axis path,
 .axis line {
   fill: none;
@@ -105,9 +97,9 @@ body {
 .link {
   fill: none;
   stroke: #000;
-  stroke-opacity: .2;
 }
 
 .link:hover {
-  stroke-opacity: .5;
+  stroke: #d7443f;
+  stroke-opacity: 0.65 !important;
 }

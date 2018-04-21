@@ -36,6 +36,9 @@ var scrollVis = function () {
   // for displaying visualizations
   var g = null;
 
+  // count entries of data
+  var countIncidents = 0;
+
   // We will set the domain when the
   // data is processed.
   // @v4 using new scale names
@@ -53,8 +56,8 @@ var scrollVis = function () {
     .range([0, height - 50], 0.1, 0.1);
 
   // Color is determined just by the index of the bars
- var barColors = { 0: '#008080', 1: '#399785', 2: '#5AAF8C',3:'#000' };
-  var color = d3.scaleSequential(d3.interpolateGreens)
+  var barColors = { 0: '#008080', 1: '#399785', 2: '#5AAF8C',3:'#000' };
+  var color = d3.scaleSequential(d3.interpolateGreens);
 
   // The histogram display shows the
   // first 30 minutes of data
@@ -102,8 +105,8 @@ var scrollVis = function () {
 
   // Field to sort for dot matrices
   class fieldToSort {
-    constructor(field, IncidentsData) {
-      this.counts = groupBy(field, IncidentsData);
+    constructor(field, IncidentsData, groupFunc = groupBy) {
+      this.counts = groupFunc(field, IncidentsData);
       this.orderedKeys = d3.values(this.counts).map(function(d) { return d.key; });
       var unkIndex = this.orderedKeys.indexOf("Unknown");
       if (unkIndex > -1) {
@@ -118,6 +121,17 @@ var scrollVis = function () {
   // All fields to sort for dot matrices
   var fieldsToSort = d3.map();
 
+  // sankey diagram
+  var sankey = d3.sankey()
+    .nodeWidth(50)
+    .nodePadding(10)
+    .size([width, height]);
+
+  var path = sankey.link();
+
+  // set up graph in same style as original example but empty
+  var graph = {"nodes" : [], "links" : []};
+
   /**
    * chart
    *
@@ -128,7 +142,7 @@ var scrollVis = function () {
   var chart = function (selection) {
     selection.each(function (rawData) {
       // create svg and give it a width and height
-      svg = d3.select(this).selectAll('.dot-bar').data([IncidentsData]);
+      svg = d3.select(this).selectAll('.dot-bar').data([incidentsData]);
       var svgE = svg.enter().append('svg').attr('class', 'dot-bar');
       // @v4 use merge to combine enter and existing selection
       svg = svg.merge(svgE);
@@ -145,15 +159,17 @@ var scrollVis = function () {
         .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
       // perform some preprocessing on raw data
-      var IncidentsData = getIncidents(rawData);
+      var incidentsData = getIncidents(rawData);
       // filter to just include filler words
-      var fillerWords = getFillerWords(IncidentsData);
+      var fillerWords = getFillerWords(incidentsData);
+      // count incidents
+      countIncidents = incidentsData.length;
 
       // get the counts of filler words for the
       // prepare fields to sort
-      fieldsToSort.set("gendersclean", new fieldToSort("gendersclean", IncidentsData));
-      fieldsToSort.set("reported", new fieldToSort("reported", IncidentsData));
-      fieldsToSort.set("itypewide", new fieldToSort("itypewide", IncidentsData));
+      fieldsToSort.set("gendersclean", new fieldToSort("gendersclean", incidentsData));
+      fieldsToSort.set("reported", new fieldToSort("reported", incidentsData));
+      fieldsToSort.set("itypewide", new fieldToSort("itypewide", incidentsData));
 
       var fillerCounts = [{key:'anxiety',value:296},{key:'depression',value: 263},{key:'stressful',value: 189},{key:'angry',value:153},{key:'fear',value:133},{key:'therapy',value:129},{key:'doubted',value:117},{key:'ptsd',value:85},{key:'lost',value:73},{key:'lonely',value:66},{key:'bad',value:59},{key:'shame',value:57},{key:'panic',value:52},{key:'upset',value:39},{key:'wary',value:34},{key:'worried',value:33},{key:'uncomfortable',value:32},{key:'struggle',value:32},{key:'suicide',value:30}]//,{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'}]
 
@@ -174,8 +190,57 @@ var scrollVis = function () {
       var histMax = d3.max(histData, function (d) { return d.length; });
       yHistScale.domain([0, histMax]);
 
-      // setupVis(IncidentsData, fieldsToSort.get("gendersclean").counts, histData);
-      setupVis(IncidentsData, fillerCounts, histData);
+      // target/perpetrator counts for sankey diagram and nodes
+      fieldsToSort.set("targetkeyword", new fieldToSort("targetkeyword", incidentsData, groupTarPerp));
+      fieldsToSort.set("perpetkeyword", new fieldToSort("perpetkeyword", incidentsData, groupTarPerp));
+
+      var perpOrder = fieldsToSort.get("perpetkeyword").orderedKeys;
+      var targOrder = fieldsToSort.get("targetkeyword").orderedKeys;
+
+      // prepare graph.nodes
+      fieldsToSort.get("perpetkeyword").counts.forEach(function (d) {
+        graph.nodes.push("p_" + d.key);
+      });
+      fieldsToSort.get("targetkeyword").counts.forEach(function (d) {
+        graph.nodes.push("t_" + d.key);
+      });
+
+
+      // sankey diagram
+      // target/perpetrator links
+      var linkNest = d3.nest()
+        .key(function (d) { return d["perpetkeyword"]; })
+        .key(function (d) { return d["targetkeyword"] })
+        .rollup(function (v) { return v.length; })
+        .entries(incidentsData)
+        .sort(function (a, b) {
+          return perpOrder.indexOf(a.key) - perpOrder.indexOf(b.key); });
+
+      linkNest.forEach(function (d) { d.values.sort(function (a, b) {
+          return targOrder.indexOf(a.key) - targOrder.indexOf(b.key); });
+      });
+
+      // prepare graph.links
+      linkNest.forEach(function (dp, ip) { dp.values.forEach(function (dt, it) {
+        graph.links.push({ "source": graph.nodes.indexOf("p_" + dp.key),
+          "target": graph.nodes.indexOf("t_" + dt.key),
+          "value": dt.value });
+      }); });
+
+      // now loop through each nodes to make nodes an array of objects
+      // rather than an array of strings
+      graph.nodes.forEach(function (d, i) {
+        graph.nodes[i] = { "name": d };
+      });
+
+      // calculate sankey
+      sankey
+        .nodes(graph.nodes)
+        .links(graph.links)
+        .layout(0);
+
+      // setupVis(incidentsData, fieldsToSort.get("gendersclean").counts, histData);
+      setupVis(incidentsData, fillerCounts, histData);
       
 
       setupSections();
@@ -221,7 +286,7 @@ var scrollVis = function () {
       .attr('class', 'title count-title highlight')
       .attr('x', 0)
       .attr('y', height / 3)
-      .text('2468');
+      .text('' + countIncidents);
 
     g.append('text')
       .attr('class', 'sub-title count-title')
@@ -318,6 +383,66 @@ var scrollVis = function () {
         return line;
       })
       .attr('opacity', 0);
+
+    // sankey format variables
+    var formatNumber = d3.format(",.0f"),    // zero decimal places
+      format = function(d) { return formatNumber(d) + " " + units; },
+      // node color scale
+      nodeMax = d3.max(graph.nodes, function (d) { return d.value }),
+      nodeOpacity = d3.scaleLinear().domain([0, nodeMax/2]).range([0.35, 1]),
+      // link stroke-opacity scale
+      linkMax = d3.max(graph.links, function (d) { return d.value }),
+      linkOpacity = d3.scaleLinear().domain([0, linkMax]).range([0.05, 0.3]);
+
+    // sankey diagram
+    var sank = svg.append('g')
+      .attr('class', 'sankey')
+      .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+      .attr('opacity', 0);
+
+    // add in the links
+    var link = sank.selectAll(".link").append('g').data(graph.links);
+    var linkE = link.enter().append("path")
+      .attr("class", "link");
+    link = link.merge(linkE).attr("d", path)
+      .style("stroke-width", function(d) { return Math.max(1, d.dy); })
+      .style('stroke-opacity', function (d) { return linkOpacity(d.value); })
+      .sort(function(a, b) { return b.dy - a.dy; });
+
+    // add the link titles
+    link.append("title")
+      .text(function(d) { return "Perpetrator: " + d.source.name.substring(2) +
+        "\nTarget: " + d.target.name.substring(2) + "\n" + format(d.value); });
+
+    // add in the links
+    var node = sank.selectAll(".node").append('g').data(graph.nodes);
+    var nodeE = node.enter().append("g")
+      .attr("class", "node");
+    node = node.merge(nodeE).attr("transform", function(d) {
+      return "translate(" + d.x + "," + d.y + ")"; });
+
+    // add the rectangles for the nodes
+    node.append("rect")
+      .attr("height", function(d) { return d.dy; })
+      .attr("width", sankey.nodeWidth())
+      .style("fill", '#d7443f')
+      .style('fill-opacity', function (d) { return nodeOpacity(d.value); })
+      .style("stroke", "none")
+      .append("title")
+      .text(function(d) {
+        return d.name.substring(2) + "\n" + format(d.value); });
+
+    // add in the title for the nodes
+    node.append("text")
+      .attr("x", -6)
+      .attr("y", function(d) { return d.dy / 2; })
+      .attr("dy", ".35em")
+      .attr("text-anchor", "end")
+      .attr("transform", null)
+      .text(function(d) { return d.name.substring(2); })
+      .filter(function(d) { return d.x < width / 2; })
+      .attr("x", 6 + sankey.nodeWidth())
+      .attr("text-anchor", "start");
 
   };
 
@@ -751,7 +876,9 @@ var scrollVis = function () {
    */
   function getIncidents(rawData) {
     return rawData.map(function (d, i) {
-      // perpetrator gender
+      // target/perpetrator status
+      d.targetrank = +d.targetrank;
+      d.perpetrank = +d.perpetrank;
       d.fillerNum = 3;
       d.filler = true;
       // time in seconds word was spoken
@@ -816,6 +943,24 @@ var scrollVis = function () {
       .rollup(function (v) { return v.length; })
       .entries(incidents)
       .sort(function (a, b) {return b.value - a.value;});
+  }
+
+  function groupTarPerp(keyword, incidents) {
+    var orders = d3.nest()
+      .key(function (d) { return d[keyword]; })
+      .key(function (d) { return d[keyword.substring(0,6)+"rank"] })
+      .rollup(function (v) { return v.length; })
+      .entries(incidents)
+      .sort(function (a, b) {
+        return b.values[0].key - a.values[0].key;});
+    var order = [];
+    orders.forEach(function (d) { order.push(d.key) });
+    return d3.nest()
+      .key(function (d) { return d[keyword]; })
+      .rollup(function (v) { return v.length; })
+      .entries(incidents)
+      .sort(function (a, b) {
+        return order.indexOf(a.key) - order.indexOf(b.key); });
   }
 
   /**
@@ -910,129 +1055,3 @@ function display(data) {
 
 // load data and display
 d3.tsv('data/data_v_0420_c.tsv', display);
-
-d3.csv("data/sankey.csv", function(data) {
-
-  // format variables
-  var formatNumber = d3.format(",.0f"),    // zero decimal places
-      format = function(d) { return formatNumber(d) + " " + units; },
-      color = d3.scaleSequential(d3.interpolateGreys);
-      color.domain([0, 100]);
-
-  // append the svg object to the body of the page
-  var svg = d3.select("#vis").append("svg")
-    .attr('class', 'sankey').attr('opacity', 0);
-
-  svg.attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
-    .append("g")
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-  // Set the sankey diagram properties
-  var sankey = d3.sankey()
-      .nodeWidth(50)
-      .nodePadding(10)
-      .size([width, height]);
-
-  var path = sankey.link();
-
-  //set up graph in same style as original example but empty
-  var graph = {"nodes" : [], "links" : []};
-
-  data.forEach(function (d) {
-    graph.nodes.push({ "name": d["Prep_"] });
-    graph.nodes.push({ "name": d["Target_"] });
-    graph.links.push({ "target": d["Prep_"],
-                       "source": d["Target_"],
-                       "value": +d["Value"] });
-   });
-
-  // return only the distinct / unique nodes
-  graph.nodes = d3.keys(d3.nest()
-    .key(function (d) { return d.name; })
-    .object(graph.nodes));
-
-  // loop through each link replacing the text with its index from node
-  graph.links.forEach(function (d, i) {
-    graph.links[i].source = graph.nodes.indexOf(graph.links[i].source);
-    graph.links[i].target = graph.nodes.indexOf(graph.links[i].target);
-  });
-
-  // now loop through each nodes to make nodes an array of objects
-  // rather than an array of strings
-  graph.nodes.forEach(function (d, i) {
-    graph.nodes[i] = { "name": d };
-  });
-
-  sankey
-      .nodes(graph.nodes)
-      .links(graph.links)
-      .layout(0);
-
-  // add in the links
-  var link = svg.append("g").selectAll(".link")
-      .data(graph.links)
-    .enter().append("path")
-      .attr("class", "link")
-      .attr("d", path)
-      .style("stroke-width", function(d) { return Math.max(1, d.dy); })
-      .sort(function(a, b) { return b.dy - a.dy; });
-
-  // add the link titles
-  link.append("title")
-        .text(function(d) {
-            return "Perpetrator: " + d.source.name.substring(2) +
-                "\nTarget: " + d.target.name.substring(2) + "\n" +
-                format(d.value); });
-
-  // add in the nodes
-  var node = svg.append("g").selectAll(".node")
-      .data(graph.nodes)
-    .enter().append("g")
-      .attr("class", "node")
-      .attr("transform", function(d) {
-          return "translate(" + d.x + "," + d.y + ")"; })
-      .call(d3.drag()
-        .subject(function(d) {
-          return d;
-        })
-        .on("start", function() {
-          this.parentNode.appendChild(this);
-        })
-        .on("drag", dragmove));
-
-  // add the rectangles for the nodes
-  node.append("rect")
-      .attr("height", function(d) { return d.dy; })
-      .attr("width", sankey.nodeWidth())
-      .style("fill", function(d) { return color(d.dy); })
-      .style("stroke", "none")
-    .append("title")
-      .text(function(d) {
-          return d.name.substring(2) + "\n" + format(d.value); });
-
-  // add in the title for the nodes
-  node.append("text")
-    .attr("x", -6)
-    .attr("y", function(d) { return d.dy / 2; })
-    .attr("dy", ".35em")
-    .attr("text-anchor", "end")
-    .attr("transform", null)
-    .text(function(d) { return d.name.substring(2); })
-    .filter(function(d) { return d.x < width / 2; })
-    .attr("x", 6 + sankey.nodeWidth())
-    .attr("text-anchor", "start");
-
-  // the function for moving the nodes
-  function dragmove(d) {
-    d3.select(this)
-      .attr("transform",
-            "translate("
-               + d.x + ","
-               + (d.y = Math.max(
-                  0, Math.min(height - d.dy, d3.event.y))
-                 ) + ")");
-    sankey.relayout();
-    link.attr("d", path);
-  }
-});

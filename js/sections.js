@@ -142,8 +142,8 @@ var scrollVis = function () {
   var chart = function (selection) {
     selection.each(function (rawData) {
       // create svg and give it a width and height
-      svg = d3.select(this).selectAll('.dot-bar').data([incidentsData]);
-      var svgE = svg.enter().append('svg').attr('class', 'dot-bar');
+      svg = d3.select(this).selectAll('.scroller').data([incidentsData]);
+      var svgE = svg.enter().append('svg').attr('class', 'scroller');
       // @v4 use merge to combine enter and existing selection
       svg = svg.merge(svgE);
 
@@ -157,6 +157,7 @@ var scrollVis = function () {
       // other elements.
       g = svg.select('g')
         .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+      g.attr('class', 'dotbar');
 
       // perform some preprocessing on raw data
       var incidentsData = getIncidents(rawData);
@@ -351,7 +352,8 @@ var scrollVis = function () {
     hist = hist.merge(histE).attr('x', function (d) { return xHistScale(d.x0); })
       .attr('y', height)
       .attr('height', 0)
-      .attr('width', xHistScale(histData[0].x1) - xHistScale(histData[0].x0) - 1)
+      .attr('width', (xHistScale(histData[0].x1) - xHistScale(histData[0].x0) -
+        1 < 0)? 0 : xHistScale(histData[0].x1) - xHistScale(histData[0].x0) - 1)
       .attr('fill', barColors[0])
       .attr('opacity', 0);
 
@@ -443,6 +445,8 @@ var scrollVis = function () {
       .filter(function(d) { return d.x < width / 2; })
       .attr("x", 6 + sankey.nodeWidth())
       .attr("text-anchor", "start");
+
+    console.log(graph);
 
   };
 
@@ -771,17 +775,28 @@ var scrollVis = function () {
     hideAxis();
     hideBars();
 
-    d3.select('.sankey')
-      .transition('show-sankey')
+    var sank = d3.select('.sankey');
+
+    sank.transition()
+      .duration(0)
+      .style('display', 'block');
+
+    sank.transition('show-sankey')
       .duration(600)
       .attr('opacity', 1.0);
   }
 
   function hideSankey() {
-    d3.select('.sankey')
-      .transition('show-sankey')
+    var sank = d3.select('.sankey');
+
+    sank.transition('hide-sankey')
       .duration(600)
       .attr('opacity', 0);
+
+    sank.transition()
+      .duration(0)
+      .delay(800)
+      .style('display', 'none');
   }
 
   function hideBars() {

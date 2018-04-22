@@ -231,7 +231,11 @@ var scrollVis = function () {
       // now loop through each nodes to make nodes an array of objects
       // rather than an array of strings
       graph.nodes.forEach(function (d, i) {
-        graph.nodes[i] = { "name": d };
+        var role = d.substring(0,2);
+        var title = d.substring(2);
+        var rank = getRank(title, role === 'p_'? perpOrder : targOrder);
+        graph.nodes[i] = { 'name': role + rank, 'rank': +rank,
+        'title': title };
       });
 
       // calculate sankey
@@ -375,19 +379,20 @@ var scrollVis = function () {
 
     // add in the links
     var link = sank.selectAll(".link").append('g').data(graph.links);
-    var linkE = link.enter().append("path")
-      .attr("class", "link");
+    var linkE = link.enter().append("path");
     link = link.merge(linkE).attr("d", path)
+      .attr('class', function (d) { return "link " + d.source.name + " " +
+      d.target.name })
       .style("stroke-width", function(d) { return Math.max(1, d.dy); })
       .style('stroke-opacity', function (d) { return linkOpacity(d.value); })
       .sort(function(a, b) { return b.dy - a.dy; });
 
     // add the link titles
     link.append("title")
-      .text(function(d) { return "Perpetrator: " + d.source.name.substring(2) +
-        "\nTarget: " + d.target.name.substring(2) + "\n" + format(d.value); });
+      .text(function(d) { return "Perpetrator: " + d.source.title +
+        "\nTarget: " + d.target.title + "\n" + format(d.value); });
 
-    // add in the links
+    // add in the nodes
     var node = sank.selectAll(".node").append('g').data(graph.nodes);
     var nodeE = node.enter().append("g")
       .attr("class", "node");
@@ -396,28 +401,37 @@ var scrollVis = function () {
 
     // add the rectangles for the nodes
     node.append("rect")
+      .attr('class', function (d) { return "node-rect " + d.name })
       .attr("height", function(d) { return d.dy; })
       .attr("width", sankey.nodeWidth())
       .style("fill", '#d7443f')
       .style('fill-opacity', function (d) { return nodeOpacity(d.value); })
       .style("stroke", "none")
-      .append("title")
-      .text(function(d) {
-        return d.name.substring(2) + "\n" + format(d.value); });
+      .append("title").text(function(d) {
+        return d.title + "\n" + format(d.value); });
+
+    node.on('mouseenter',
+      function (d) { var n = d3.select(this);
+        n.classed('hl', true);
+        d3.selectAll('.link.' + d.name).classed('hl', true); })
+      .on('mouseout', function (d) {
+        var n = d3.select(this);
+        n.classed('hl', false);
+        d3.selectAll('.link.' + d.name).classed('hl', false);
+      });
 
     // add in the title for the nodes
     node.append("text")
+      .attr('class', function (d) { return "node-title " + d.name })
       .attr("x", -6)
       .attr("y", function(d) { return d.dy / 2; })
       .attr("dy", ".35em")
       .attr("text-anchor", "end")
       .attr("transform", null)
-      .text(function(d) { return d.name.substring(2); })
+      .text(function(d) { return d.title; })
       .filter(function(d) { return d.x < width / 2; })
       .attr("x", 6 + sankey.nodeWidth())
       .attr("text-anchor", "start");
-
-    console.log(graph);
 
   };
 
@@ -947,6 +961,14 @@ var scrollVis = function () {
       .entries(incidents)
       .sort(function (a, b) {
         return order.indexOf(a.key) - order.indexOf(b.key); });
+  }
+
+
+  function getRank(title, order) {
+    return order.length - order.indexOf(title) - 1;
+  }
+  function getTitle(rank, order) {
+    return order[order.length - rank - 1];
   }
 
   /**

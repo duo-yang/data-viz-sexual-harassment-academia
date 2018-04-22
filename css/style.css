@@ -83,6 +83,16 @@ body {
   stroke-width: 4px;
 }
 
+g.hl rect {
+  border: 2px solid #d7443f !important;
+}
+
+g.hl text {
+  font-size: medium;
+  font-weight: bold;
+  color: #fff;
+}
+
 .node rect {
   cursor: move;
   fill-opacity: 1;
@@ -102,4 +112,9 @@ body {
 .link:hover {
   stroke: #d7443f;
   stroke-opacity: 0.65 !important;
+}
+
+.link.hl {
+  stroke: #d7443f;
+  stroke-opacity: 0.5 !important;
 }

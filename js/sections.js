@@ -172,16 +172,17 @@ var scrollVis = function () {
       fieldsToSort.set("reported", new fieldToSort("reported", incidentsData));
       fieldsToSort.set("itypewide", new fieldToSort("itypewide", incidentsData));
 
-      var fillerCounts = [{key:'anxiety',value:296},{key:'depression',value: 263},{key:'stressful',value: 189},{key:'angry',value:153},{key:'fear',value:133},{key:'therapy',value:129},{key:'doubted',value:117},{key:'ptsd',value:85},{key:'lost',value:73},{key:'lonely',value:66},{key:'bad',value:59},{key:'shame',value:57},{key:'panic',value:52},{key:'upset',value:39},{key:'wary',value:34},{key:'worried',value:33},{key:'uncomfortable',value:32},{key:'struggle',value:32},{key:'suicide',value:30}]//,{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'}]
+      var mentalCounts = [{key:'anxiety',value:296},{key:'depression',value: 263},{key:'stressful',value: 189},{key:'angry',value:153},{key:'fear',value:133},{key:'therapy',value:129},{key:'doubted',value:117},{key:'ptsd',value:85},{key:'lost',value:73},{key:'lonely',value:66},{key:'bad',value:59},{key:'shame',value:57},{key:'panic',value:52},{key:'upset',value:39},{key:'wary',value:34},{key:'worried',value:33},{key:'uncomfortable',value:32},{key:'struggle',value:32},{key:'suicide',value:30}]//,{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'}]
 
       // set the bar scale's domain
       // var genderCountMax = d3.max(fieldsToSort.get("gendersclean").counts,function (d) { return d.value; });
 
       // xBarScale.domain([0, genderCountMax]);
-      color.domain([0, d3.max(fillerCounts, function(d) { return d.value; })]);
+      // TODO: UNUSED
+      color.domain([0, d3.max(mentalCounts, function(d) { return d.value; })]);
       // console.log(color)
 
-      var countMax = d3.max(fillerCounts, function (d) { return d.value;});
+      var countMax = d3.max(mentalCounts, function (d) { return d.value;});
       xBarScale.domain([0, countMax]);
 
       // get aggregated histogram data
@@ -245,7 +246,7 @@ var scrollVis = function () {
         .layout(0);
 
       // setupVis(incidentsData, fieldsToSort.get("gendersclean").counts, histData);
-      setupVis(incidentsData, fillerCounts, histData);
+      setupVis(incidentsData, mentalCounts, histData);
       
 
       setupSections();
@@ -258,11 +259,11 @@ var scrollVis = function () {
    * sections of the visualization.
    *
    * @param IncidentData - data object for each word.
-   * @param fillerCounts - nested data that includes
+   * @param mentalCounts - nested data that includes
    *  element for each filler word type.
    * @param histData - binned histogram data
    */
-  var setupVis = function (IncidentData, fillerCounts, histData) {
+  var setupVis = function (IncidentData, mentalCounts, histData) {
     // axis
     g.append('g')
       .attr('class', 'x axis')
@@ -323,7 +324,7 @@ var scrollVis = function () {
     // barchart
     // @v4 Using .merge here to ensure
     // new and old data have same attrs applied
-    var bars = g.selectAll('.bar').data(fillerCounts);
+    var bars = g.selectAll('.bar').data(mentalCounts);
     var barsE = bars.enter()
       .append('rect')
       .attr('class', 'bar');
@@ -334,7 +335,7 @@ var scrollVis = function () {
       .attr('width', 0)
       .attr('height', yBarScale.bandwidth());
 
-    var barText = g.selectAll('.bar-text').data(fillerCounts);
+    var barText = g.selectAll('.bar-text').data(mentalCounts);
     barText.enter()
       .append('text')
       .attr('class', 'bar-text')

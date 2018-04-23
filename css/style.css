@@ -88,7 +88,6 @@ g.hl rect {
 }
 
 g.hl text {
-  font-size: medium;
   font-weight: bold;
   color: #fff;
 }

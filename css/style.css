@@ -66,6 +66,11 @@ body {
   position: absolute;
 }
 
+.dot:hover {
+  stroke-width: 4px;
+  transition: stroke-width 300ms;
+}
+
 .axis path,
 .axis line {
   fill: none;
@@ -105,15 +110,17 @@ g.hl text {
 
 .link {
   fill: none;
-  stroke: #000;
+  stroke: #56BFB1;
+  transition: stroke-opacity 300ms, stroke 300ms;
 }
 
 .link:hover {
-  stroke: #d7443f;
+  stroke: #F97171;
   stroke-opacity: 0.65 !important;
 }
 
 .link.hl {
-  stroke: #d7443f;
+  stroke: #F97171;
   stroke-opacity: 0.5 !important;
+  transition: stroke-opacity 300ms, stroke 300ms;
 }

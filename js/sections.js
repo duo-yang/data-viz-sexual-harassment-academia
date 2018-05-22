@@ -1,7 +1,7 @@
 // Constants to define the size
 // and margins of the vis area.
 const width = 600;
-const height = 520;
+const height = 600;
 const margin = { top: 0, left: 20, bottom: 40, right: 10 };
 
 // Units of incidents
@@ -24,10 +24,16 @@ var scrollVis = function () {
   var activeIndex = 0;
 
   // Sizing for the grid visualization
-  var dotRadius = 3;
+  var dotRadius = 4;
   var dotSize = dotRadius * 2;
   var dotPad = 2;
-  var numPerRow = width / (dotSize + dotPad);
+  var numPerRow = Math.floor(width / (dotSize + dotPad));
+  var gridHeight = height * 0.7;
+  var numPerCol = Math.floor(gridHeight / (dotSize + dotPad));
+  // legend
+  var legendPad = 14;
+  var legendOffset = 30;
+  var defaultfontSize = null;
 
   // main svg used for visualization
   var svg = null;
@@ -35,6 +41,12 @@ var scrollVis = function () {
   // d3 selection that will be used
   // for displaying visualizations
   var g = null;
+
+  // legends selection
+  var legends = d3.map();
+  var legendBars = d3.map();
+  var legendScale = d3.scaleLinear();
+  var dotTitles = null;
 
   // count entries of data
   var countIncidents = 0;
@@ -57,6 +69,31 @@ var scrollVis = function () {
 
   // Color is determined just by the index of the bars
   var barColors = { 0: '#008080', 1: '#399785', 2: '#5AAF8C',3:'#000' };
+  // var colorPalette = { 0: '#d7443f', 1: '#272d33', 2: '#697f7f', 3: '#999894', 4: '#ccc8c5' };
+  var colorPalette = {
+    // all colors
+    0: '#D7443F',
+    1: '#F97171', 2: '#FFB2B3',
+    3: '#56BFB1', 4: '#94E5DB',
+    5: '#CCCCCC',
+    6: '#DDDDDD',
+    'length': 7,
+    // main colors
+    'emphasis': '#D7443F',
+    'primary': '#F97171',
+    'background': '#DDDDDD',
+    // reported
+    'No': '#F97171', 'Yes': '#CCCCCC',
+    // perpetrator gender
+    'Male': '#56BFB1', 'Female': '#F97171',
+    // 'Multiple': '#CCCCCC',
+    // institution
+    'Research University': '#F97171', 'Other College': '#FFB2B3',
+    'Conference & Fieldwork': '#56BFB1',
+    // other & unknown
+    'Other': '#CCCCCC',
+    'Unknown': '#DDDDDD'
+  };
   var color = d3.scaleSequential(d3.interpolateGreens);
 
   // The histogram display shows the
@@ -106,8 +143,13 @@ var scrollVis = function () {
   // Field to sort for dot matrices
   class fieldToSort {
     constructor(field, IncidentsData, groupFunc = groupBy) {
-      this.counts = groupFunc(field, IncidentsData);
-      this.orderedKeys = d3.values(this.counts).map(function(d) { return d.key; });
+      var counts = groupFunc(field, IncidentsData);
+      this.orderedKeys = d3.values(counts).map(function(d) { return d.key; });
+      var newCounts = d3.map();
+      counts.forEach(function (d) {
+        newCounts.set(d.key, d.value);
+      });
+      this.counts = newCounts;
       var unkIndex = this.orderedKeys.indexOf("Unknown");
       if (unkIndex > -1) {
         this.orderedKeys.splice(unkIndex, 1);
@@ -115,6 +157,7 @@ var scrollVis = function () {
       }
       this.maxKey = this.orderedKeys[0];
       this.sorted = false;
+      this.hasLegend = false;
     }
   }
 
@@ -123,11 +166,13 @@ var scrollVis = function () {
 
   // sankey diagram
   var sankey = d3.sankey()
-    .nodeWidth(50)
-    .nodePadding(10)
-    .size([width, height]);
+    .nodeWidth(dotRadius * 6)
+    .nodePadding(dotRadius + dotSize)
+    .size([width - margin.left - margin.right,
+      height - margin.top - margin.bottom]);
+  var sankLegend = null;
 
-  var path = sankey.link();
+  var path = sankey.link(dotRadius);
 
   // set up graph in same style as original example but empty
   var graph = {"nodes" : [], "links" : []};
@@ -172,6 +217,11 @@ var scrollVis = function () {
       fieldsToSort.set("reported", new fieldToSort("reported", incidentsData));
       fieldsToSort.set("itypewide", new fieldToSort("itypewide", incidentsData));
 
+      // these three fields have legend
+      fieldsToSort.get('gendersclean').hasLegend = true;
+      fieldsToSort.get('reported').hasLegend = true;
+      fieldsToSort.get('itypewide').hasLegend = true;
+
       var mentalCounts = [{key:'anxiety',value:296},{key:'depression',value: 263},{key:'stressful',value: 189},{key:'angry',value:153},{key:'fear',value:133},{key:'therapy',value:129},{key:'doubted',value:117},{key:'ptsd',value:85},{key:'lost',value:73},{key:'lonely',value:66},{key:'bad',value:59},{key:'shame',value:57},{key:'panic',value:52},{key:'upset',value:39},{key:'wary',value:34},{key:'worried',value:33},{key:'uncomfortable',value:32},{key:'struggle',value:32},{key:'suicide',value:30}]//,{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'},{key:'worried',value:'33'}]
 
       // set the bar scale's domain
@@ -200,11 +250,11 @@ var scrollVis = function () {
       var targOrder = fieldsToSort.get("targetkeyword").orderedKeys;
 
       // prepare graph.nodes
-      fieldsToSort.get("perpetkeyword").counts.forEach(function (d) {
-        graph.nodes.push("p_" + d.key);
+      fieldsToSort.get("perpetkeyword").counts.each(function (d, k) {
+        graph.nodes.push("p_" + k);
       });
-      fieldsToSort.get("targetkeyword").counts.forEach(function (d) {
-        graph.nodes.push("t_" + d.key);
+      fieldsToSort.get("targetkeyword").counts.each(function (d, k) {
+        graph.nodes.push("t_" + k);
       });
 
 
@@ -306,7 +356,7 @@ var scrollVis = function () {
     // dot grid
     // @v4 Using .merge here to ensure
     // new and old data have same attrs applied
-    var dots = g.selectAll('.dot').data(IncidentData, function (d) { return d.word; });
+    var dots = g.selectAll('.dot').data(IncidentData);
     var dotsE = dots.enter()
       .append('circle')
       .classed('dot', true);
@@ -320,6 +370,80 @@ var scrollVis = function () {
       .attr('cx', function (d) { return d.x + dotRadius;})
       .attr('cy', function (d) { return d.y + dotRadius;})
       .attr('opacity', 0);
+    dotTitles = dots.append('title');
+
+    // dots legends
+    legendScale
+      .domain([0, countIncidents])
+      .range([0, Math.ceil(countIncidents / numPerCol) * (dotSize + dotPad)]);
+    var numCols = Math.ceil(countIncidents / numPerCol);
+    var gridWidth = numCols * (dotSize + dotPad);
+
+    defaultfontSize = window.getComputedStyle(g.node(), null).fontSize;
+    defaultfontSize = +defaultfontSize.substring(0, defaultfontSize.length - 2);
+    // console.log(defaultfontSize);
+
+    fieldsToSort.each(function (d, k) {
+      if (d.hasLegend) {
+        legendBars.set(k, {
+            'back': g.append('g').attr('class', 'legend-back')
+              .attr('opacity', 0),
+            'bar': g.append('g').attr('class', 'legend-bar')
+              .attr('opacity', 0)
+          });
+        legends.set(k, g.append('g')
+          .attr('class', 'legends')
+          .attr('opacity', 0)
+        );
+        var countAll = 0,
+            anchorStart = true,
+            offseted = false,
+            itemY = gridHeight + legendPad,
+            barX = 0;
+        d.orderedKeys.forEach(function (t, i) {
+          var itemX = Math.floor(countAll / numPerCol) * (dotSize + dotPad);
+          countAll += d.counts.get(t);
+          var itemDx = i === d.orderedKeys.length - 1 ? gridWidth - itemX :
+            Math.floor(countAll / numPerCol) * (dotSize + dotPad) - itemX;
+          var legendBar = legendBars.get(k)['bar'].append('rect')
+            .attr('x', itemX)
+            .attr('width', itemDx)
+            .attr('height', dotSize / 2)
+            .style('fill', colorPalette[t])
+            .attr('opacity', 0.65);
+          barX += legendScale(d.counts.get(t));
+          legends.get(k).append('text')
+            .attr('class', 'legend')
+            .style('fill', colorPalette[t])
+            .call(function (tag) {
+              tag.text(t.split(/\s+/)[0]);
+              var textWidth = tag.node().getComputedTextLength();
+              if (itemX + textWidth > width) {
+                anchorStart = false;
+              }
+              if (textWidth > itemDx || offseted) {
+                itemY += offseted ? legendOffset : 0;
+              }
+              legendBars.get(k)['back'].append('rect')
+                .attr('x', itemX)
+                .attr('y', gridHeight + legendPad - dotSize)
+                .attr('width', itemDx)
+                .attr('height', itemY - gridHeight - legendPad)
+                .style('fill', colorPalette[t])
+                .attr('opacity', 0.35);
+              legendBar.attr('y', itemY - dotSize);
+              tag.attr('y', itemY + 1.5 * dotSize)
+                .attr('x', anchorStart ? itemX :
+                  itemX + itemDx);
+              if (textWidth > itemDx && !offseted) {
+                itemY += legendOffset;
+                offseted = true;
+              }
+            })
+            .call(wrap, t, itemDx, anchorStart, legendBars.get(k)['bar']);
+        })
+      }
+    });
 
     // barchart
     // @v4 Using .merge here to ensure
@@ -331,7 +455,9 @@ var scrollVis = function () {
     bars = bars.merge(barsE)
       .attr('x', 0)
       .attr('y', function (d, i) { return yBarScale(i);})
-      .attr('fill', '#d7443f')//function (d, i) { return barColors[i]; }) #######color######
+      .attr('fill', colorPalette['emphasis'])//function (d, i) { return
+      // barColors[i]; })
+      // #######color######
       .attr('width', 0)
       .attr('height', yBarScale.bandwidth());
 
@@ -370,13 +496,76 @@ var scrollVis = function () {
       nodeOpacity = d3.scaleLinear().domain([0, nodeMax/2]).range([0.35, 1]),
       // link stroke-opacity scale
       linkMax = d3.max(graph.links, function (d) { return d.value }),
-      linkOpacity = d3.scaleLinear().domain([0, linkMax]).range([0.05, 0.3]);
+      linkOpacity = d3.scalePow().exponent(2).domain([0, linkMax]).range([0.05, 0.4]);
 
     // sankey diagram
     var sank = svg.append('g')
       .attr('class', 'sankey')
       .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
       .attr('opacity', 0);
+
+    // sankey diagram legends
+    sankLegend = svg.append('g')
+      .attr('class', 'sank-legend')
+      .attr('opacity', 0);
+    // tags
+    sankLegend.append('text')
+      .text('PERPETRATOR STATUS')
+      .attr('x', margin.right)
+      .attr('y', height)
+      .attr('text-anchor', "start")
+      .style('fill', colorPalette['emphasis'])
+      .style('font-weight', 'bold')
+      .style('font-size', '1.2em');
+    sankLegend.append('text')
+      .text('TARGET STATUS')
+      .attr('x', width)
+      .attr('y', height)
+      .attr('text-anchor', "end")
+      .style('fill', colorPalette['emphasis'])
+      .style('font-weight', 'bold')
+      .style('font-size', '1.2em');
+    // axis
+    sankLegend.append('text')
+      .text('Lower Status')
+      .attr('x', margin.left + width / 2)
+      .attr('y', height * 0.9)
+      .attr('text-anchor', "middle")
+      .style('fill', colorPalette[3])
+      .style('font-weight', "bold");
+    sankLegend.append('text')
+      .text('Higher Status')
+      .attr('x', margin.left + width / 2)
+      .attr('y', height * 0.1)
+      .attr('text-anchor', "middle")
+      .style('fill', colorPalette[3])
+      .style('font-weight', "bold");
+
+    // arrowhead
+    svg.append('defs').append('marker')
+      .attr('id', 'arrowforward')
+      .attr('refY', 4)
+      .attr('markerWidth', 12)
+      .attr('markerHeight', 8)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M 0,0 V 8 L12,4 Z')
+      .style('fill', colorPalette[4]);
+    svg.append('defs').append('marker')
+      .attr('id', 'arrowbackward')
+      .attr('refY', 4)
+      .attr('markerWidth', 12)
+      .attr('markerHeight', 8)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M 12,0 V 8 L0,4 Z')
+      .style('fill', colorPalette[4]);
+    sankLegend.append('line')
+      .attr('marker-end', 'url(#arrowforward) ')
+      .attr('marker-start', 'url(#arrowbackward)')
+      .attr('x1', margin.left + width / 2).attr('x2', margin.left + width / 2)
+      .attr('y2', height * 0.2).attr('y1', height * 0.8)
+      .style('stroke', colorPalette[4]);
 
     // add in the links
     var link = sank.selectAll(".link").append('g').data(graph.links);
@@ -400,12 +589,20 @@ var scrollVis = function () {
     node = node.merge(nodeE).attr("transform", function(d) {
       return "translate(" + d.x + "," + d.y + ")"; });
 
+    // record node-link element
+    var node_link = {};
+    node.each(function (d) {
+      node_link[d.name] = d3.selectAll('.link.' + d.name);
+    });
+
     // add the rectangles for the nodes
     node.append("rect")
       .attr('class', function (d) { return "node-rect " + d.name })
-      .attr("height", function(d) { return d.dy; })
+      .attr("height", function(d) { return d.dy + dotRadius * 2; })
       .attr("width", sankey.nodeWidth())
-      .style("fill", '#d7443f')
+      .attr("rx", dotRadius)
+      .attr("ry", dotRadius)
+      .style("fill", colorPalette['emphasis'])
       .style('fill-opacity', function (d) { return nodeOpacity(d.value); })
       .style("stroke", "none")
       .append("title").text(function(d) {
@@ -414,18 +611,18 @@ var scrollVis = function () {
     node.on('mouseenter',
       function (d) { var n = d3.select(this);
         n.classed('hl', true);
-        d3.selectAll('.link.' + d.name).classed('hl', true); })
+        node_link[d.name].classed('hl', true); })
       .on('mouseout', function (d) {
         var n = d3.select(this);
         n.classed('hl', false);
-        d3.selectAll('.link.' + d.name).classed('hl', false);
+        node_link[d.name].classed('hl', false);
       });
 
     // add in the title for the nodes
     node.append("text")
       .attr('class', function (d) { return "node-title " + d.name })
       .attr("x", -6)
-      .attr("y", function(d) { return d.dy / 2; })
+      .attr("y", function(d) { return d.dy / 2 + dotRadius; })
       .attr("dy", ".35em")
       .attr("text-anchor", "end")
       .attr("transform", null)
@@ -491,6 +688,7 @@ var scrollVis = function () {
    *
    */
   function showTitle() {
+    hideLegend();
     hideAxis();
     hideBars();
     hideSankey();
@@ -515,6 +713,7 @@ var scrollVis = function () {
    *
    */
   function showFillerTitle() {
+    hideLegend();
     hideAxis();
     hideBars();
     hideSankey();
@@ -544,9 +743,12 @@ var scrollVis = function () {
    *
    */
   function showGrid() {
+    hideLegend();
     hideAxis();
     hideBars();
     hideSankey();
+
+    dotTitles.text("Click to view details");
 
     g.selectAll('.count-title')
       .transition()
@@ -555,12 +757,91 @@ var scrollVis = function () {
 
     g.selectAll('.dot')
       .transition()
+      .duration(200)
+      .attr('opacity', 0);
+
+    g.selectAll('.dot')
+      .transition()
       .duration(600)
       .delay(function (d) {
-        return 5 * d.row;
+        return 1 * d.id;
       })
       .attr('opacity', 1.0)
-      .attr('fill', '#d7443f');
+      .attr('fill', colorPalette['primary'])
+      .attr('stroke', colorPalette['primary'])
+      .attr('stroke-width', 0);
+  }
+
+  function hideLegend() {
+    legends.each(function (d) {
+      d.transition()
+        .duration(300)
+        .attr('opacity', 0);
+    });
+    legendBars.each(function (d) {
+      d['bar'].transition()
+        .duration(300)
+        .attr('opacity', 0);
+      d['back'].transition()
+        .duration(300)
+        .attr('opacity', 0);
+    });
+  }
+
+  /**
+   * wrap - wrap SVG text tag content into width
+   *
+   * @param e - element selection
+   * @param text - text content
+   * @param widthLimit - max width of text tag
+   * @param anchorStart - text-anchor of the tag
+   * @param bgParent - parent element selection
+   */
+  function wrap(e, text, widthLimit, anchorStart, bgParent = null) {
+    // break up text into words
+    var words = text.split(/\s+/).reverse(),
+        word,
+        line = [],
+        lineNumber = 0,
+        lineHeight = 1.1, // unit: em
+        x = e.attr('x'),
+        y = e.attr('y'),
+        dy = 0;
+
+    // add background
+    var background = bgParent.append('rect')
+      .attr('class', 'text-back')
+      .attr('x', x)
+      .attr('y', y - defaultfontSize * lineHeight)
+      .attr('width', width - x)
+      .style('fill', '#ffffff');
+
+    // add tspan with width restrictions
+    var tspan = e.text(null).append('tspan')
+      .attr('x', x)
+      .attr('y', y)
+      .attr('dy', dy + "em")
+      .attr('text-anchor', anchorStart ? "start" : "end");
+    while (word = words.pop()) {
+      line.push(word);
+      tspan.text(line.join(" "));
+      if (tspan.node().getComputedTextLength() > widthLimit) {
+        if (word.length !== 1) {
+          if (line.length === 1) lineNumber--;
+          line.pop();
+          tspan.text(line.join(" "));
+          line = [word];
+          tspan = e.append('tspan')
+            .attr('x', x).attr('y', y)
+            .attr('dy', ++lineNumber * lineHeight + dy + "em")
+            .attr('text-anchor', anchorStart ? "start" : "end")
+            .text(word);
+        }
+      }
+    }
+    background.attr('height', anchorStart ?
+      ++lineNumber * (lineHeight) + 0.5 + dy + "em" : 0);
+
   }
 
   /**
@@ -573,9 +854,18 @@ var scrollVis = function () {
    */
   function highlightReported() {
     var field = "reported";
+    var legendDelay = 500;
+    var legendBlock = legends.get(field);
+    var legendBar = legendBars.get(field)['bar'];
+    var legendBack = legendBars.get(field)['back'];
+    hideLegend();
     hideAxis();
     hideBars();
     hideSankey();
+
+    dotTitles.text(function (d) {
+      return d['reportedwide'] + " (click to view details)";
+    });
 
     g.selectAll('.bar')
       .transition()
@@ -589,15 +879,22 @@ var scrollVis = function () {
 
     var dots = g.selectAll('.dot');
 
+    // Sort by gender
+    sortBy(dots, field);
+
     dots.transition()
       .duration(800)
       .attr('opacity', function (d) { return d[field] === "Unknown" ? 0.3 :
         1.0; })
       .attr('fill', function (d) { return d[field] ===
-        fieldsToSort.get(field).maxKey ? '#d7443f' : '#ddd'; });
-
-    // Sort by gender
-    sortBy(dots, field);
+        fieldsToSort.get(field).maxKey ?
+        colorPalette['primary'] : colorPalette['background'];
+      })
+      .attr('stroke', function (d) { return d[field] ===
+        fieldsToSort.get(field).maxKey ?
+        colorPalette['primary'] : colorPalette['background'];
+      })
+      .attr('stroke-width', 0);
 
     // use named transition to ensure
     // move happens even if other
@@ -609,10 +906,27 @@ var scrollVis = function () {
         .attr('cx', function (d) { return d.x + dotRadius;})
         .attr('cy', function (d) { return d.y + dotRadius;});
 
+      legendDelay = 2000;
+
       fieldsToSort.each(function (d, i) {
         d.sorted = i === field;
       });
     }
+
+    // show legend
+    legendBlock.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    legendBar.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    legendBack.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+
   }
 
   /**
@@ -625,9 +939,18 @@ var scrollVis = function () {
    */
   function highlightGender() {
     var field = "gendersclean";
+    var legendDelay = 500;
+    var legendBlock = legends.get(field);
+    var legendBar = legendBars.get(field)['bar'];
+    var legendBack = legendBars.get(field)['back'];
+    hideLegend();
     hideAxis();
     hideBars();
     hideSankey();
+
+    dotTitles.text(function (d) {
+      return d['gendersclean'] + " (click to view details)";
+    });
 
     g.selectAll('.bar')
       .transition()
@@ -641,15 +964,16 @@ var scrollVis = function () {
 
     var dots = g.selectAll('.dot');
 
+    // Sort by gender
+    sortBy(dots, field);
+
     dots.transition()
       .duration(800)
       .attr('opacity', function (d) { return d[field] === "Unknown" ? 0.3 :
         1.0; })
-      .attr('fill', function (d) { return d[field] ===
-        fieldsToSort.get(field).maxKey ? '#d7443f' : '#ddd'; });
-
-    // Sort by gender
-    sortBy(dots, field);
+      .attr('fill', function (d) { return colorPalette[d[field]]; })
+      .attr('stroke', function (d) { return colorPalette[d[field]]; })
+      .attr('stroke-width', 0);
 
     // use named transition to ensure
     // move happens even if other
@@ -661,10 +985,27 @@ var scrollVis = function () {
         .attr('cx', function (d) { return d.x + dotRadius;})
         .attr('cy', function (d) { return d.y + dotRadius;});
 
+      legendDelay = 2000;
+
       fieldsToSort.each(function (d, i) {
         d.sorted = i === field;
       });
     }
+
+    // show legend
+    legendBlock.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    legendBar.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    legendBack.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+
   }
 
   /**
@@ -677,21 +1018,31 @@ var scrollVis = function () {
    */
   function highlightInst() {
     var field = "itypewide";
+    var legendDelay = 500;
+    var legendBlock = legends.get(field);
+    var legendBar = legendBars.get(field)['bar'];
+    var legendBack = legendBars.get(field)['back'];
+    hideLegend();
     hideAxis();
     hideBars();
     hideSankey();
 
+    dotTitles.text(function (d) {
+      return d['itypeclean'] + " (click to view details)";
+    });
+
     var dots = g.selectAll('.dot');
+
+    // Sort by gender
+    sortBy(dots, field);
 
     dots.transition()
       .duration(800)
       .attr('opacity', function (d) { return d[field] === "Unknown" ? 0.3 :
         1.0; })
-      .attr('fill', function (d) { return d[field] ===
-        fieldsToSort.get(field).maxKey ? '#d7443f' : '#ddd'; });
-
-    // Sort by gender
-    sortBy(dots, field);
+      .attr('fill', function (d) { return colorPalette[d[field]]; })
+      .attr('stroke', function (d) { return colorPalette[d[field]]; })
+      .attr('stroke-width', 0);
 
     // use named transition to ensure
     // move happens even if other
@@ -703,10 +1054,27 @@ var scrollVis = function () {
         .attr('cx', function (d) { return d.x + dotRadius;})
         .attr('cy', function (d) { return d.y + dotRadius;});
 
+      legendDelay = 2000;
+
       fieldsToSort.each(function (d, i) {
         d.sorted = i === field;
       });
     }
+
+    // show legend
+    legendBlock.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    legendBar.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    legendBack.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+
   }
 
   /**
@@ -720,6 +1088,7 @@ var scrollVis = function () {
   function showMentalImpacts() {
     // ensure bar axis is set
     showAxis(xAxisBar);
+    hideLegend();
 
     g.selectAll('.dot')
       .transition()
@@ -758,6 +1127,7 @@ var scrollVis = function () {
   }
 
   function showSankey() {
+    hideLegend();
     hideAxis();
     hideBars();
 
@@ -770,12 +1140,18 @@ var scrollVis = function () {
     sank.transition('show-sankey')
       .duration(600)
       .attr('opacity', 1.0);
+    sankLegend.transition()
+      .duration(600)
+      .attr('opacity', 1.0);
   }
 
   function hideSankey() {
     var sank = d3.select('.sankey');
 
     sank.transition('hide-sankey')
+      .duration(600)
+      .attr('opacity', 0);
+    sankLegend.transition()
       .duration(600)
       .attr('opacity', 0);
 
@@ -864,6 +1240,16 @@ var scrollVis = function () {
    *
    */
 
+  function updateDotPos(d, i) {
+    // positioning for dot visual
+    // stored here to make it easier
+    // to keep track of
+    d.row = i % numPerCol;
+    d.y = d.row * (dotSize + dotPad);
+    d.col = Math.floor(i / numPerCol);
+    d.x = d.col * (dotSize + dotPad);
+  }
+
   /**
    * getIncidents - maps raw data to
    * array of data objects. There is
@@ -876,7 +1262,9 @@ var scrollVis = function () {
    * @param rawData - data read in from file
    */
   function getIncidents(rawData) {
+    d3.shuffle(rawData);
     return rawData.map(function (d, i) {
+      d.id = +d.id;
       // target/perpetrator status
       d.targetrank = +d.targetrank;
       d.perpetrank = +d.perpetrank;
@@ -887,13 +1275,7 @@ var scrollVis = function () {
       // time in minutes word was spoken
       d.min = Math.floor(d.time / 60);
 
-      // positioning for dot visual
-      // stored here to make it easier
-      // to keep track of.
-      d.col = i % numPerRow;
-      d.x = d.col * (dotSize + dotPad);
-      d.row = Math.floor(i / numPerRow);
-      d.y = d.row * (dotSize + dotPad);
+      updateDotPos(d, i);
       return d;
     });
   }
@@ -984,14 +1366,7 @@ var scrollVis = function () {
         fieldsToSort.get(field).orderedKeys.indexOf(a[field]),
         fieldsToSort.get(field).orderedKeys.indexOf(b[field]));
       })
-      .each(function (d, i) {
-        // recalculate dot positions
-        d.col = i % numPerRow;
-        d.x = d.col * (dotSize + dotPad);
-        d.row = Math.floor(i / numPerRow);
-        d.y = d.row * (dotSize + dotPad);
-      }) :
-      incidents;
+      .each(updateDotPos) : incidents;
   }
 
   /**

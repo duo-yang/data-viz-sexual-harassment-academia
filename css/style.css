@@ -3,13 +3,33 @@ body {
 }
 
 .container {
-  width: 890px;
+  width: 900px;
 }
 
 #graphic {
   padding-top: 60px;
 }
 
+.hidden {
+  display: none;
+}
+
+#dot-explain {
+  margin-top: 2em;
+}
+.item {
+  display: block;
+  position: absolute;
+  left: 0;
+}
+.indent {
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 225px;
+  line-height: 1.2em;
+  margin: 0;
+}
 
 #sections {
   position: relative;
@@ -17,11 +37,11 @@ body {
   width: 250px;
   top: 0px;
   z-index: 90;
-  padding-bottom: 200px;
+  padding-bottom: 300px;
 }
 
-.step {
-  margin-bottom: 200px;
+section.step {
+  margin-bottom: 300px;
   font-family: 'Lato', sans-serif;
   font-size: 16px;
   line-height: 23px;
@@ -45,21 +65,11 @@ body {
   display: inline-block;
   position: fixed;
   top: 60px;
-  z-index: 1;
+  z-index: 4;
   margin-left: 0;
   /* height: 600px; */
   /* width: 600px; */
   /* background-color: #ddd; */
-}
-
-#vis .title {
-  font-size: 60px;
-  text-anchor: start;
-}
-
-#vis .sub-title {
-  font-size: 60px;
-  text-anchor: start;
 }
 
 #vis>svg {
@@ -76,11 +86,6 @@ body {
   fill: none;
   stroke: #666;
   shape-rendering: crispEdges;
-}
-
-.highlight {
-  fill: #d7443f;
-  font-weight: bold;
 }
 
 .cough-arrow {
@@ -123,4 +128,25 @@ g.hl text {
   stroke: #F97171;
   stroke-opacity: 0.5 !important;
   transition: stroke-opacity 300ms, stroke 300ms;
+}
+
+.emphasis {
+  color: #D7443F;
+  fill: #D7443F;
+  font-weight: 900;
+}
+
+.contact {
+  position: absolute;
+  width: 100%;
+  bottom: 90px;
+  z-index: 2;
+}
+
+.contact > p {
+  display: block;
+  width: 900px;
+  margin: 0 auto;
+  padding: 0 190px 0 15px;
+  text-align: end;
 }

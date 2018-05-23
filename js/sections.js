@@ -2,7 +2,7 @@
 // and margins of the vis area.
 const width = 600;
 const height = 600;
-const margin = { top: 0, left: 20, bottom: 40, right: 10 };
+const margin = { top: 20, left: 20, bottom: 20, right: 10 };
 
 // Units of incidents
 const units = "Incidents";
@@ -41,12 +41,8 @@ var scrollVis = function () {
   // d3 selection that will be used
   // for displaying visualizations
   var g = null;
-
-  // legends selection
-  var legends = d3.map();
-  var legendBars = d3.map();
-  var legendScale = d3.scaleLinear();
-  var dotTitles = null;
+  // top margin of the svg
+  var g_top = null;
 
   // count entries of data
   var countIncidents = 0;
@@ -77,6 +73,7 @@ var scrollVis = function () {
     3: '#56BFB1', 4: '#94E5DB',
     5: '#CCCCCC',
     6: '#DDDDDD',
+    7: '#767678',
     'length': 7,
     // main colors
     'emphasis': '#D7443F',
@@ -95,6 +92,22 @@ var scrollVis = function () {
     'Unknown': '#DDDDDD'
   };
   var color = d3.scaleSequential(d3.interpolateGreens);
+
+  // vis title
+  var visTitle = null;
+
+  // dot matrix
+  var dots = null,
+      dotTitles = null;
+  // legends selection
+  var legends = d3.map(),
+      legendBars = d3.map(),
+      countTag = null, countTitle = null, countingTag = null, numberTag = null,
+      legendScale = d3.scaleLinear();
+
+  // Intro
+  var introBlock = null,
+      contactBlock = null;
 
   // The histogram display shows the
   // first 30 minutes of data
@@ -188,7 +201,7 @@ var scrollVis = function () {
     selection.each(function (rawData) {
       // create svg and give it a width and height
       svg = d3.select(this).selectAll('.scroller').data([incidentsData]);
-      var svgE = svg.enter().append('svg').attr('class', 'scroller');
+      var svgE = svg.enter().append('svg').classed('scroller', true);
       // @v4 use merge to combine enter and existing selection
       svg = svg.merge(svgE);
 
@@ -201,8 +214,11 @@ var scrollVis = function () {
       // this group element will be used to contain all
       // other elements.
       g = svg.select('g')
-        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-      g.attr('class', 'dotbar');
+        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+        .classed('dotbar', true);
+      g_top = svg.append('g')
+        .attr('transform', 'translate(' + margin.left + ',0)')
+        .classed('top-margin', true);
 
       // perform some preprocessing on raw data
       var incidentsData = getIncidents(rawData);
@@ -316,47 +332,76 @@ var scrollVis = function () {
   var setupVis = function (IncidentData, mentalCounts, histData) {
     // axis
     g.append('g')
-      .attr('class', 'x axis')
+      .classed('x axis', true)
       .attr('transform', 'translate(0,' + height + ')')
       .call(xAxisBar);
     g.select('.x.axis').style('opacity', 0);
 
     // count vis title
-    g.append('text')
-      .attr('class', 'title vis-title')
-      .attr('x', 0)
-      .attr('y', height / 3)
+    visTitle = g.append('g')
+      .classed('vis-title', true);
+    visTitle.attr('opacity', 0);
+    visTitle.append('text')
+      .classed('title', true)
+      .attr('x', margin.left)
+      .attr('y', '1em')
+      .style('font-size', "3em")
       .text('Sexual Harassment');
 
-    g.append('text')
-      .attr('class', 'sub-title vis-title highlight')
-      .attr('x', 0)
-      .attr('y', (height / 3) + (height / 5))
+    visTitle.append('text')
+      .classed('sub-title emphasis', true)
+      .attr('x', margin.left - dotPad)
+      .attr('y', 115)
+      .style('font-size', "5em")
       .text('in Academia');
 
-    g.selectAll('.vis-title')
+    visTitle.append('text')
+      .classed('sub-title', true)
+      .attr('x', margin.left)
+      .attr('y', 160)
+      .style('font-size', "1.5em")
+      .attr('fill', colorPalette[7])
+      .text('A Data Visualization Project');
+
+    // count titles
+    countTitle = g.append('text')
+      .classed('count-title', true);
+    countTitle.attr('x', 150)
+      .attr('y', gridHeight + legendPad * 3 + dotSize)
+      .style('fill', colorPalette[5])
+      .style('font-weight', "700")
+      .style('font-size', "2em")
+      .text('Reported incidents')
       .attr('opacity', 0);
 
-    // count filler word count title
-    g.append('text')
-      .attr('class', 'title count-title highlight')
-      .attr('x', 0)
-      .attr('y', height / 3)
-      .text('' + countIncidents);
-
-    g.append('text')
-      .attr('class', 'sub-title count-title')
-      .attr('x', 0)
-      .attr('y', (height / 3) + (height / 5))
-      .text('Reported incidents');
-
-    g.selectAll('.count-title')
+    countingTag = g.append('text')
+      .classed('count-title', true);
+    countingTag.attr('x', 150)
+      .attr('y', gridHeight + legendPad * 5 + dotSize)
+      .style('fill', colorPalette[7])
+      .style('font-weight', "normal")
+      .style('font-size', "initial")
+      .text('and counting ...')
       .attr('opacity', 0);
+
+    numberTag = g.append('text')
+      .classed('count-title', true);
+    numberTag.attr('x', 0)
+      .attr('y', gridHeight + legendPad * 3 + dotSize)
+      .style('fill', colorPalette['emphasis'])
+      .style('font-weight', "900")
+      .style('font-size', "4em")
+      .text(0)
+      .attr('opacity', 0);
+
+    // intro block
+    introBlock = d3.select('#intro');
+    contactBlock = d3.select('#contact');
 
     // dot grid
     // @v4 Using .merge here to ensure
     // new and old data have same attrs applied
-    var dots = g.selectAll('.dot').data(IncidentData);
+    dots = g.selectAll('.dot').data(IncidentData);
     var dotsE = dots.enter()
       .append('circle')
       .classed('dot', true);
@@ -383,16 +428,27 @@ var scrollVis = function () {
     defaultfontSize = +defaultfontSize.substring(0, defaultfontSize.length - 2);
     // console.log(defaultfontSize);
 
+    countTag = g_top.append('text')
+      .classed('count-all', true)
+      .text("Total: " + countIncidents)
+      .attr('x', width - margin.right - dotPad)
+      .attr('y', margin.top - dotPad * 2)
+      .attr('text-anchor', "end")
+      .style('fill', colorPalette['Other'])
+      .style('font-weight', "bold")
+      .style('font-size', "initial")
+      .attr('opacity', 0);
+
     fieldsToSort.each(function (d, k) {
       if (d.hasLegend) {
         legendBars.set(k, {
-            'back': g.append('g').attr('class', 'legend-back')
+            'back': g.append('g').classed('legend-back', true)
               .attr('opacity', 0),
-            'bar': g.append('g').attr('class', 'legend-bar')
+            'bar': g.append('g').classed('legend-bar', true)
               .attr('opacity', 0)
           });
         legends.set(k, g.append('g')
-          .attr('class', 'legends')
+          .classed('legends', true)
           .attr('opacity', 0)
         );
         var countAll = 0,
@@ -413,12 +469,14 @@ var scrollVis = function () {
             .attr('opacity', 0.65);
           barX += legendScale(d.counts.get(t));
           legends.get(k).append('text')
-            .attr('class', 'legend')
+            .classed('legend', true)
             .style('fill', colorPalette[t])
+            .style('font-weight', "normal")
+            .style('font-size', "1em")
             .call(function (tag) {
               tag.text(t.split(/\s+/)[0]);
               var textWidth = tag.node().getComputedTextLength();
-              if (itemX + textWidth > width) {
+              if (itemX + textWidth > width && offseted) {
                 anchorStart = false;
               }
               if (textWidth > itemDx || offseted) {
@@ -426,16 +484,31 @@ var scrollVis = function () {
               }
               legendBars.get(k)['back'].append('rect')
                 .attr('x', itemX)
-                .attr('y', gridHeight + legendPad - dotSize)
+                .attr('y', gridHeight + legendPad + 0.5 * dotSize)
                 .attr('width', itemDx)
                 .attr('height', itemY - gridHeight - legendPad)
                 .style('fill', colorPalette[t])
                 .attr('opacity', 0.35);
-              legendBar.attr('y', itemY - dotSize);
-              tag.attr('y', itemY + 1.5 * dotSize)
+              legendBar.attr('y', itemY + 0.5 * dotSize);
+              tag.attr('y', itemY + 3 * dotSize)
                 .attr('x', anchorStart ? itemX :
                   itemX + itemDx);
+              if (!offseted) {
+                legendBars.get(k)['bar'].append('text')
+                  .attr('x', itemX)
+                  .attr('y', itemY)
+                  .style('fill', colorPalette[t])
+                  .style('font-weight', "bold")
+                  .text(d.counts.get(t));
+              }
               if (textWidth > itemDx && !offseted) {
+                legendBars.get(k)['bar'].append('text')
+                  .attr('x', gridWidth)
+                  .attr('y', itemY)
+                  .attr('text-anchor', "end")
+                  .style('fill', colorPalette['Unknown'])
+                  .style('font-weight', "bold")
+                  .text(countIncidents - countAll);
                 itemY += legendOffset;
                 offseted = true;
               }
@@ -451,7 +524,7 @@ var scrollVis = function () {
     var bars = g.selectAll('.bar').data(mentalCounts);
     var barsE = bars.enter()
       .append('rect')
-      .attr('class', 'bar');
+      .classed('bar', true);
     bars = bars.merge(barsE)
       .attr('x', 0)
       .attr('y', function (d, i) { return yBarScale(i);})
@@ -464,7 +537,7 @@ var scrollVis = function () {
     var barText = g.selectAll('.bar-text').data(mentalCounts);
     barText.enter()
       .append('text')
-      .attr('class', 'bar-text')
+      .classed('bar-text', true)
       .text(function (d) { return d.key ; })
       .attr('x', 0)
       .attr('dx', 15)
@@ -479,7 +552,7 @@ var scrollVis = function () {
     // new and old data have same attrs applied
     var hist = g.selectAll('.hist').data(histData);
     var histE = hist.enter().append('rect')
-      .attr('class', 'hist');
+      .classed('hist', true);
     hist = hist.merge(histE).attr('x', function (d) { return xHistScale(d.x0); })
       .attr('y', height)
       .attr('height', 0)
@@ -500,13 +573,13 @@ var scrollVis = function () {
 
     // sankey diagram
     var sank = svg.append('g')
-      .attr('class', 'sankey')
+      .classed('sankey', true)
       .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
       .attr('opacity', 0);
 
     // sankey diagram legends
     sankLegend = svg.append('g')
-      .attr('class', 'sank-legend')
+      .classed('sank-legend', true)
       .attr('opacity', 0);
     // tags
     sankLegend.append('text')
@@ -644,13 +717,13 @@ var scrollVis = function () {
     // activateFunctions are called each
     // time the active section changes
     activateFunctions[0] = showTitle;
-    activateFunctions[1] = showFillerTitle;
+    activateFunctions[1] = showIntro;
     activateFunctions[2] = showGrid;
     activateFunctions[3] = highlightReported;
     activateFunctions[4] = highlightGender;
     activateFunctions[5] = highlightInst;
-    activateFunctions[6] = showMentalImpacts;
-    activateFunctions[7] = showSankey;
+    activateFunctions[6] = showSankey;
+    activateFunctions[7] = showMentalImpacts;
 
     // updateFunctions are called while
     // in a particular section to update
@@ -693,45 +766,58 @@ var scrollVis = function () {
     hideBars();
     hideSankey();
 
-    g.selectAll('.count-title')
-      .transition()
-      .duration(0)
+    dots.transition()
+      .duration(300)
       .attr('opacity', 0);
 
-    g.selectAll('.vis-title')
-      .transition()
+    countTitle.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    countingTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    numberTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+
+    visTitle.transition()
       .duration(600)
       .attr('opacity', 1.0);
+
+    introBlock.transition()
+      .duration(0)
+      .style('opacity', 1.0);
+    contactBlock.transition()
+      .duration(600)
+      .style('opacity', 1.0);
   }
 
-  /**
-   * showFillerTitle - filler counts
-   *
-   * hides: intro title
-   * hides: dot grid
-   * shows: filler count title
-   *
-   */
-  function showFillerTitle() {
-    hideLegend();
-    hideAxis();
-    hideBars();
-    hideSankey();
-
-    g.selectAll('.vis-title')
-      .transition()
-      .duration(0)
+  function showIntro() {
+    dots.transition()
+      .duration(300)
       .attr('opacity', 0);
 
-    g.selectAll('.dot')
-      .transition()
-      .duration(0)
+    countTitle.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    countingTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    numberTag.transition()
+      .duration(300)
       .attr('opacity', 0);
 
-    g.selectAll('.count-title')
-      .transition()
-      .duration(600)
-      .attr('opacity', 1.0);
+    visTitle.transition()
+      .duration(300)
+      .attr('opacity', 0);
+
+    introBlock.transition()
+      .duration(1200)
+      .delay(1200)
+      .style('opacity', 1.0);
+    contactBlock.transition()
+      .duration(300)
+      .style('opacity', 0);
   }
 
   /**
@@ -750,18 +836,34 @@ var scrollVis = function () {
 
     dotTitles.text("Click to view details");
 
-    g.selectAll('.count-title')
-      .transition()
-      .duration(0)
+    introBlock.transition()
+      .duration(600)
+      .style('opacity', 0)
+      .attr('opacity', 0);
+    contactBlock.transition()
+      .duration(600)
+      .style('opacity', 0);
+
+    visTitle.transition()
+      .duration(300)
       .attr('opacity', 0);
 
-    g.selectAll('.dot')
-      .transition()
+    countTitle.transition()
+      .duration(600)
+      .attr('opacity', 1.0);
+    countingTag.transition()
+      .duration(1000)
+      .delay(3000)
+      .attr('opacity', 1.0);
+    numberTag.transition()
+      .duration(600)
+      .attr('opacity', 1.0);
+
+    dots.transition()
       .duration(200)
       .attr('opacity', 0);
 
-    g.selectAll('.dot')
-      .transition()
+    dots.transition()
       .duration(600)
       .delay(function (d) {
         return 1 * d.id;
@@ -770,6 +872,20 @@ var scrollVis = function () {
       .attr('fill', colorPalette['primary'])
       .attr('stroke', colorPalette['primary'])
       .attr('stroke-width', 0);
+
+    numberTag.transition('add-number')
+      .duration(countIncidents)
+      .delay(300)
+      .tween("text", function() {
+        var node = this;
+        var i = d3.interpolate(0, countIncidents),
+          prec = (countIncidents + "").split("."),
+          round = (prec.length > 1) ? Math.pow(10, prec[1].length) : 1;
+        return function(t) {
+          node.textContent = Math.round(i(t) * round) / round;
+        };
+      });
+
   }
 
   function hideLegend() {
@@ -778,7 +894,7 @@ var scrollVis = function () {
         .duration(300)
         .attr('opacity', 0);
     });
-    legendBars.each(function (d) {
+    legendBars.each(function (d, i) {
       d['bar'].transition()
         .duration(300)
         .attr('opacity', 0);
@@ -786,6 +902,9 @@ var scrollVis = function () {
         .duration(300)
         .attr('opacity', 0);
     });
+    countTag.transition()
+        .duration(300)
+        .attr('opacity', 0);
   }
 
   /**
@@ -810,7 +929,7 @@ var scrollVis = function () {
 
     // add background
     var background = bgParent.append('rect')
-      .attr('class', 'text-back')
+      .classed('text-back', true)
       .attr('x', x)
       .attr('y', y - defaultfontSize * lineHeight)
       .attr('width', width - x)
@@ -867,6 +986,16 @@ var scrollVis = function () {
       return d['reportedwide'] + " (click to view details)";
     });
 
+    countTitle.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    countingTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    numberTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+
     g.selectAll('.bar')
       .transition()
       .duration(600)
@@ -876,8 +1005,6 @@ var scrollVis = function () {
       .transition()
       .duration(0)
       .attr('opacity', 0);
-
-    var dots = g.selectAll('.dot');
 
     // Sort by gender
     sortBy(dots, field);
@@ -926,6 +1053,10 @@ var scrollVis = function () {
       .duration(1000)
       .delay(legendDelay)
       .attr('opacity', 1.0);
+    countTag.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
 
   }
 
@@ -952,6 +1083,16 @@ var scrollVis = function () {
       return d['gendersclean'] + " (click to view details)";
     });
 
+    countTitle.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    countingTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    numberTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+
     g.selectAll('.bar')
       .transition()
       .duration(600)
@@ -961,8 +1102,6 @@ var scrollVis = function () {
       .transition()
       .duration(0)
       .attr('opacity', 0);
-
-    var dots = g.selectAll('.dot');
 
     // Sort by gender
     sortBy(dots, field);
@@ -1002,6 +1141,10 @@ var scrollVis = function () {
       .delay(legendDelay)
       .attr('opacity', 1.0);
     legendBack.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
+    countTag.transition()
       .duration(1000)
       .delay(legendDelay)
       .attr('opacity', 1.0);
@@ -1031,7 +1174,15 @@ var scrollVis = function () {
       return d['itypeclean'] + " (click to view details)";
     });
 
-    var dots = g.selectAll('.dot');
+    countTitle.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    countingTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
+    numberTag.transition()
+      .duration(300)
+      .attr('opacity', 0);
 
     // Sort by gender
     sortBy(dots, field);
@@ -1074,6 +1225,10 @@ var scrollVis = function () {
       .duration(1000)
       .delay(legendDelay)
       .attr('opacity', 1.0);
+    countTag.transition()
+      .duration(1000)
+      .delay(legendDelay)
+      .attr('opacity', 1.0);
 
   }
 
@@ -1090,8 +1245,7 @@ var scrollVis = function () {
     showAxis(xAxisBar);
     hideLegend();
 
-    g.selectAll('.dot')
-      .transition()
+    dots.transition()
       .duration(800)
       .attr('opacity', 0);
 
@@ -1130,6 +1284,10 @@ var scrollVis = function () {
     hideLegend();
     hideAxis();
     hideBars();
+
+    dots.transition()
+      .duration(800)
+      .attr('opacity', 0);
 
     var sank = d3.select('.sankey');
 

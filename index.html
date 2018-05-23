@@ -13,7 +13,7 @@
   </script>
 
   <meta charset="UTF-8">
-  <title>Sexual Harassment Incidents in Academia - A Data Visualization</title>
+  <title>Sexual Harassment Incidents in Academia - Data Visualization</title>
 
   <!-- Fonts & CSS -->
   <link href="https://fonts.googleapis.com/css?family=Lato:100,100i,300,300i,400,400i,700,700i,900,900i" rel="stylesheet">
@@ -28,29 +28,69 @@
 
 </head>
 <body>
+<div class="contact" id="contact">
+  <p style="color: #767678;">Created by
+    <a href="http://duo-yang.com">Duo Yang</a>, Chuyao Wang</p>
+  <p style="font-size: 0.8em; color: #CCCCCC;">&copy; &nbsp; Duo Yang &nbsp;
+    &amp; &nbsp; Chuyao Wang &nbsp; - &nbsp; 2018</p>
+</div>
 <div class="container">
   <div id='graphic'>
     <div id='sections'>
-      <section class="step">
-        <div class="title">Sexual Harassment in Academia</div>
-        This visualization is a course project for SI 649, information visualization. The dataset is gained from an online survey conducted by Dr. Kelsky.
+      <div class="step" style="display: block; height: 18em; width: 100%"></div>
+      <section class="step" style="width: 700px; margin-bottom: 100px"
+               id="intro">
+        <h1 class="hidden">Sexual Harassment in Academia</h1>
+        <p>
+          As the #MeTooPhD movement starts gaining momentum in 2017, we
+          started to realize the seriousness of sexual harassment in the
+          academic settings. Unfortunately, large scale data of sexual
+          harassment incidents in academia is extremely rare.
+        </p>
+        <p>
+          Thanks to <a href="https://theprofessorisin.com/" target="_blank">
+          Dr. Karen Kelsky</a>, who started the
+          <a href="https://theprofessorisin.com/2017/12/01/a-crowdsourced-survey-of-sexual-harassment-in-the-academy/"
+             target="_blank">Crowdsourced Survey of Sexual Harassment in the Academy</a>,
+          a large amount of self-reported data (2000+ incidents)
+          has become publicly available, bringing this issue to light.
+        </p>
+        <p>
+          Utilizing that data, this visualization aims to shed light on
+          some of the repeating themes and patterns in the survey with the
+          help of <a href="https://d3js.org/" target="_blank">D3</a>, and
+          hopefully help to harness this momentum and push forward.
+        </p>
       </section>
       <section class="step">
-        <div class="title">Total Data</div>
-        The data has reported 2468 sexual harassment incidents in total. The incidents are reported from all over the world.
-      </section>
-      <section class="step">
-        <div class="title">Overview of the data</div>
-        Each dot represents a reported incident. 
+        <h2 class="title">Sexual Harassment
+          <span class="emphasis">Incidents</span>
+        </h2>
+        <p>
+          As of Feb 4th 2018, the crowdsourced survey has collected
+          <span id="total-num">2468</span> self-reported sexual harassment
+          incidents in the academic settings from all over the world.
+        </p>
+        <div id="dot-explain">
+          <svg class="item" height="2.4em" width="20">
+            <circle cx="10" cy="0.6em" r="4" stroke="none"
+                    fill="#D7443F" ></circle>
+          </svg>
+          <p class="indent">Each <span class="emphasis">dot</span> in the grid
+            represents an <span class="emphasis">incident</span>.
+          </p>
+        </div>
       </section>
       <section class="step">
         <div class="title">Incidents Reported to Authorities</div>
-        <span style="color: #d7443f">Red dots</span> represents the incidents where perpetrators were reported to the departments. <span style="color: #ddd">Grey dots</span> reprents the unreported incidents and lignt grey dots represents unknown reported.
+        <span style="color: #d7443f">Red dots</span> represents the
+        incidents where perpetrators were reported to the departments. <span
+        style="color: #ddd">Grey dots</span> represents the unreported
+        incidents and light grey dots represents unknown reported.
       </section>
       <section class="step">
         <div class="title">Gender of Perpetrators</div>
         Vast majority of the perpetrators are <span style="color: #d7443f">Male</span>.
-        And here are all the fillers I used in those 30 minutes.
       </section>
       <section class="step">
         <div class="title">Type of Institutions</div>
@@ -58,12 +98,20 @@
         
       </section>
       <section class="step">
-        <div class="title">Mental Impact</div>
-        This chart shows the mental impact extracted from the original data. We can see that the <span style="color: #d7443f">anxiety</span>, <span style="color: #d7443f">depression</span>, and <span style="color: #d7443f">stress</span> are the three major mental impact of the incidents to the victims.
+        <div class="title">Power Relationship</div>
+        <p>
+          Left-hand and right-hand side are respectively, the status of
+          perpetrators and targets of the self-reported incidents.
+        </p>
+        <p>
+          There is an obvious imbalance between perpetrators and targets
+          status, as is shown by a much higher concentration of perpetrators
+          as faculty and targets as students.
+        </p>
       </section>
       <section class="step">
-        <div class="title">Sankey Diagram</div>
-        There is an obvious imbalance between perpetrators and targets.
+        <div class="title">Mental Impact</div>
+        This chart shows the mental impact extracted from the original data. We can see that the <span style="color: #d7443f">anxiety</span>, <span style="color: #d7443f">depression</span>, and <span style="color: #d7443f">stress</span> are the three major mental impact of the incidents to the victims.
       </section>
     </div>
     <div id='vis'>
